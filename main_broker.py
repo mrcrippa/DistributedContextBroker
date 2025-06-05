@@ -1,6 +1,6 @@
 from global_data import *
-from messages.message import *
-from messages.message_creator import *
+from utils.message import *
+from utils.message_creator import *
 
 def main():
     # TODO: setup logger
@@ -18,7 +18,7 @@ def main():
 
 
     while True:
-        print("Waiting for messages...")
+        print("Waiting for utils...")
         received_raw_data, sender_addr = broker_sock.recvfrom(1024)
         # TODO: log message received trace
         print("received message: " + received_raw_data.decode() + " from " + str(sender_addr))
