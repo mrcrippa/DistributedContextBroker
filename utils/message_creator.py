@@ -1,4 +1,5 @@
-from global_data import *
+import json
+import time
 
 def create_nack_message_string(operation, requester_address, reason):
     dict_as_string = json.dumps(

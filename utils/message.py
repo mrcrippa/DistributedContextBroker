@@ -1,6 +1,8 @@
-from global_data import *
+import json
+import logging
+from global_data import message_type_set
 
-def checkInteger(s):
+def check_integer(s):
     try:
         s = int(s)
         result = True
@@ -22,15 +24,16 @@ class Message(object):
         self._message_type = ""
         self._message_timestamp = 0
 
+        logging.error("test")
+
         try:
             self._message_tokens = json.loads(message_raw_data)
         except json.JSONDecodeError:
-            # TODO: log error trace
-            print("Message decode error")
+            logging.error("Message decode error")
 
         if self._message_tokens:
             if self._message_tokens.get("TYPE") and self._message_tokens.get("TIMESTAMP"):
-                if self._message_tokens.get("TYPE") in message_type_set and checkInteger(self._message_tokens.get("TIMESTAMP")):
+                if self._message_tokens.get("TYPE") in message_type_set and check_integer(self._message_tokens.get("TIMESTAMP")):
                     self._message_type = self._message_tokens.get("TYPE")
                     self._message_timestamp = self._message_tokens.get("TIMESTAMP")
                     self._well_formed = True
