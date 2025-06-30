@@ -1,11 +1,17 @@
 from tables.subscription import Subscription
-def check_integer(s):
+
+
+# check if a string is a valid integer bigger than zero
+def check_integer_bigger_than_zero(value):
+    result = False
     try:
-        s = int(s)
-        result = True
-    except ValueError as e:
+        s = int(value)
+        if s > 0:
+            result = True
+    except ValueError:
         result = False
     return result
+
 
 class SubscriptionTable(object):
     """
@@ -22,14 +28,17 @@ class SubscriptionTable(object):
     def remove_entry(self, entry_id):
         if entry_id is not None and entry_id in self._table:
             del self._table[entry_id]
-        return None
 
-    def search_entry(self, entity_id, entity_type, scope, subscriber_address, subscriber_port):
-        if entity_id is not None and entity_type is not None and scope is not None and subscriber_address is not None and subscriber_port is not None and check_integer(subscriber_port):
-            key_identifier = hash(entity_id + entity_type + scope + subscriber_address + str(subscriber_port))
-            if key_identifier in self._table:
-                return self._table[key_identifier]
-        return None
+    def search_entry(self, entity_id, entity_type, scope):
+        result_list = []
+        if entity_id is not None and entity_type is not None and scope is not None:
+            for sub in self._table.values():
+                if sub.get_entity_id() == entity_id and sub.get_entity_type() == entity_type and sub.get_scope() == scope:
+                    result_list.append(sub)
+        return result_list
 
     def print(self):
-        return str(self._table)
+        result = ""
+        for sub in self._table.values():
+            result += sub.print() + " || " + '\n'
+        return result

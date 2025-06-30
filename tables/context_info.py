@@ -1,8 +1,13 @@
-def check_integer(s):
+
+
+#check if a string is a valid integer bigger than zero
+def check_integer_bigger_than_zero(value):
+    result = False
     try:
-        s = int(s)
-        result = True
-    except ValueError as e:
+        s = int(value)
+        if s > 0:
+            result = True
+    except ValueError:
         result = False
     return result
 
@@ -22,7 +27,7 @@ class ContextInfo(object):
         self._validity_end = 0
 
     def get_object_id(self):
-        return hash(self._entity_id + self._entity_type + self._scope)
+        return str(hash(self._entity_id + self._entity_type + self._scope))
 
     def get_provider_id(self):
         return self._provider_id
@@ -63,15 +68,15 @@ class ContextInfo(object):
         return self._validity_begin
 
     def set_validity_begin(self, validity_begin):
-        if validity_begin is not None and check_integer(validity_begin):
-            self._validity_begin = validity_begin
+        if validity_begin is not None and check_integer_bigger_than_zero(validity_begin):
+            self._validity_begin = int(validity_begin)
 
     def get_validity_end(self):
         return self._validity_end
 
     def set_validity_end(self, validity_end):
-        if validity_end is not None and check_integer(validity_end):
-            self._validity_end = validity_end
+        if validity_end is not None and check_integer_bigger_than_zero(validity_end):
+            self._validity_end = int(validity_end)
 
     def print(self):
         contents = {"provider_id": self.get_provider_id(),

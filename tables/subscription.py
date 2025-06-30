@@ -1,8 +1,11 @@
-def check_integer(s):
+# check if a string is a valid integer bigger than zero
+def check_integer_bigger_than_zero(value):
+    result = False
     try:
-        s = int(s)
-        result = True
-    except ValueError as e:
+        s = int(value)
+        if s > 0:
+            result = True
+    except ValueError:
         result = False
     return result
 
@@ -21,8 +24,8 @@ class Subscription(object):
         self._duration = 0
 
     def get_object_id(self):
-        return hash(
-            self._entity_id + self._entity_type + self._scope + self._subscriber_address + str(self._subscriber_port))
+        return str(hash(
+            self._entity_id + self._entity_type + self._scope + self._subscriber_address + str(self._subscriber_port)))
 
     def get_entity_id(self):
         return self._entity_id
@@ -56,12 +59,16 @@ class Subscription(object):
         return self._subscriber_port
 
     def set_subscriber_port(self, subscriber_port):
-        if subscriber_port is not None and check_integer(subscriber_port) and subscriber_port > 0:
-            self._subscriber_port = subscriber_port
+        if subscriber_port is not None and check_integer_bigger_than_zero(subscriber_port):
+            self._subscriber_port = int(subscriber_port)
 
     def get_duration(self):
         return self._duration
 
     def set_duration(self, duration):
-        if duration is not None and check_integer(duration) and duration > 0:
-            self._duration = duration
+        if duration is not None and check_integer_bigger_than_zero(duration):
+            self._duration = int(duration)
+
+    def print(self):
+        return self.get_object_id() + " , " + self.get_entity_id() + " , " + self.get_entity_type() + " , " + self.get_scope() + " , " + self.get_subscriber_address() + " , " + str(
+            str(self.get_subscriber_port())) + " , " + str(self.get_duration())

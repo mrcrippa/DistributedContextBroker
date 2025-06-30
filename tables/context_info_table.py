@@ -19,10 +19,13 @@ class ContextInfoTable(object):
 
     def search_entry(self, entity_id, entity_type, scope):
         if entity_id is not None and entity_type is not None and scope is not None:
-            key_identifier = hash(entity_id + entity_type + scope)
+            key_identifier = str(hash(entity_id + entity_type + scope))
             if key_identifier in self._table:
                 return self._table[key_identifier]
         return None
 
     def print(self):
-        return str(self._table)
+        result = ""
+        for entry in self._table.values():
+            result += entry.print() + " || " + '\n'
+        return result
