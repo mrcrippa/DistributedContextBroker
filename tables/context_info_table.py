@@ -1,3 +1,5 @@
+import time
+
 from tables.context_info import ContextInfo
 
 class ContextInfoTable(object):
@@ -21,7 +23,14 @@ class ContextInfoTable(object):
         if entity_id is not None and entity_type is not None and scope is not None:
             key_identifier = str(hash(entity_id + entity_type + scope))
             if key_identifier in self._table:
-                return self._table[key_identifier]
+
+                begin_tag = int(self._table[key_identifier].get_validity_begin())
+                end_tag = int(self._table[key_identifier].get_validity_end())
+                current_time = int(round(time.time() * 1000))
+
+                currently_valid = begin_tag <= current_time <= end_tag
+                if currently_valid:
+                    return self._table[key_identifier]
         return None
 
     def print(self):

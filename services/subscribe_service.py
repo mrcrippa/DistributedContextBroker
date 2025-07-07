@@ -16,10 +16,10 @@ def sub_timer_thread(entry_id):
         del sub_timer_threads[entry_id]
     sub_timer_threads_lock.release()
 
-    print("time : " + str(int(round(time.time() * 1000))) + " - thread : " + str(
-        threading.get_ident()) + " - sub_table : " + sub_table.print())
-    print("time : " + str(int(round(time.time() * 1000))) + " - thread : " + str(
-        threading.get_ident()) + " - sub_timer_threads : " + str(sub_timer_threads))
+    # print("time : " + str(int(round(time.time() * 1000))) + " - thread : " + str(
+    #   threading.get_ident()) + " - sub_table : " + sub_table.print())
+    # print("time : " + str(int(round(time.time() * 1000))) + " - thread : " + str(
+    #    threading.get_ident()) + " - sub_timer_threads : " + str(sub_timer_threads))
 
 
 def add_subscription(rcv_msg: Message):

@@ -7,23 +7,22 @@ from utils.message import Message
 
 
 def ctx_timer_thread(entry_id):
-    print("ctx_table : " + ctx_table.print())
     ctx_lock.acquire()
-    print("removing ctx table entry : " + entry_id)
     ctx_table.remove_entry(entry_id)
     ctx_lock.release()
-    print("ctx_table : " + ctx_table.print())
 
-    print("ctx_timer_threads : " + str(ctx_timer_threads))
     ctx_timer_threads_lock.acquire()
     if entry_id is not None and entry_id in ctx_timer_threads:
         del ctx_timer_threads[entry_id]
     ctx_timer_threads_lock.release()
-    print("ctx_timer_threads : " + str(ctx_timer_threads))
+
+    # print("time : " + str(int(round(time.time() * 1000))) + " - thread : " + str(
+    # threading.get_ident()) + " - sub_table : " + ctx_table.print())
+    # print("time : " + str(int(round(time.time() * 1000))) + " - thread : " + str(
+    # threading.get_ident()) + " - sub_timer_threads : " + str(ctx_timer_threads))
 
 
 def process_update(rcv_msg: Message):
-
     ctx_data = ContextInfo()
     ctx_data.set_provider_id(rcv_msg.get_message_token("PROVIDER_ID"))
     ctx_data.set_entity_id(rcv_msg.get_message_token("ENTITY_ID"))
@@ -34,31 +33,19 @@ def process_update(rcv_msg: Message):
     ctx_data.set_data(rcv_msg.get_message_token("DATA"))
 
     ctx_lock.acquire()
-    print("ctx_table : " + ctx_table.print())
-    print("removing data : " + ctx_data.get_object_id())
     ctx_table.remove_entry(ctx_data.get_object_id())
-    print("ctx_table : " + ctx_table.print())
-    print("adding data : " + ctx_data.get_object_id())
     ctx_table.add_entry(ctx_data)
     ctx_lock.release()
-    print("ctx_table : " + ctx_table.print())
 
-    print("ctx_timer_threads : " + str(ctx_timer_threads))
     ctx_timer_threads_lock.acquire()
     if ctx_data.get_object_id() in ctx_timer_threads:
         ctx_timer_threads[ctx_data.get_object_id()].cancel()
         del ctx_timer_threads[ctx_data.get_object_id()]
-    print("ctx_timer_threads : " + str(ctx_timer_threads))
 
     interval_timer = (ctx_data.get_validity_end() - int(round(time.time() * 1000))) / 1000
-    print("begin_tag : " + str(ctx_data.get_validity_begin()))
-    print("end_tag : " + str(ctx_data.get_validity_end()))
-    print("current time : " + str(int(round(time.time() * 1000))))
-    print("interval_timer : " + str(interval_timer))
     ctx_timer_threads[ctx_data.get_object_id()] = threading.Timer(interval_timer, ctx_timer_thread,
                                                                   [ctx_data.get_object_id()])
     ctx_timer_threads[ctx_data.get_object_id()].start()
     ctx_timer_threads_lock.release()
-    print("ctx_timer_threads : " + str(ctx_timer_threads))
 
     return ctx_data

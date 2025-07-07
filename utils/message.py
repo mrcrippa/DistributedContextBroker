@@ -2,7 +2,7 @@ import json
 import logging
 import time
 
-message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_REQUEST", "RESPONSE"}
+message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "REQUEST", "RESPONSE"}
 
 # check if a string is a valid integer bigger than zero
 def check_integer_bigger_than_zero(value):
@@ -92,11 +92,12 @@ class Message(object):
         else:
             begin_tag = int(self._message_tokens.get("VALIDITY_BEGIN"))
             end_tag = int(self._message_tokens.get("VALIDITY_END"))
-            current_timestamp = int(round(time.time() * 1000))
+            current_time = int(round(time.time() * 1000))
 
-            tags_correct = begin_tag < current_timestamp < end_tag
+            end_after_begin = begin_tag < end_tag
+            end_after_current = current_time < end_tag
 
-            if not tags_correct:
+            if not (end_after_begin and end_after_current):
                 well_formed = False
 
         return well_formed

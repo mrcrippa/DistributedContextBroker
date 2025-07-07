@@ -27,10 +27,10 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_lock):
             logging.info("SUBSCRIBE message received from " + str(sender_addr))
             sub = add_subscription(received_msg)
 
-            print("time : " + str(int(round(time.time() * 1000))) + " - thread : " + str(
-                threading.get_ident()) + " - sub_table : " + sub_table.print())
-            print("time : " + str(int(round(time.time() * 1000))) + " - thread : " + str(
-                threading.get_ident()) + " - sub_timer_threads : " + str(sub_timer_threads))
+            #print("time : " + str(int(round(time.time() * 1000))) + " - thread : " + str(
+             #   threading.get_ident()) + " - sub_table : " + sub_table.print())
+            #print("time : " + str(int(round(time.time() * 1000))) + " - thread : " + str(
+            #    threading.get_ident()) + " - sub_timer_threads : " + str(sub_timer_threads))
 
             response = create_ack_message_string("SUBSCRIBE", str(sender_addr),
                                                  "Consumer subscribed to [ " + sub.get_entity_id() + " , " + sub.get_entity_type() + " , " + sub.get_scope() + " ]")
@@ -52,6 +52,11 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_lock):
             logging.info("UPDATE message received from " + str(sender_addr))
 
             ctx_data = process_update(received_msg)
+
+            #print("time : " + str(int(round(time.time() * 1000))) + " - thread : " + str(
+             #   threading.get_ident()) + " - sub_table : " + ctx_table.print())
+            #print("time : " + str(int(round(time.time() * 1000))) + " - thread : " + str(
+             #   threading.get_ident()) + " - sub_timer_threads : " + str(ctx_timer_threads))
 
             response = create_ack_message_string("UPDATE", str(sender_addr),
                                                  "Update to [ " + ctx_data.get_entity_id() + " , " + ctx_data.get_entity_type() + " , " + ctx_data.get_scope() + " ]")
