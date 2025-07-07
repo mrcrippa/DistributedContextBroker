@@ -50,9 +50,9 @@ def process_update(rcv_msg: Message):
         del ctx_timer_threads[ctx_data.get_object_id()]
     print("ctx_timer_threads : " + str(ctx_timer_threads))
 
-    interval_timer = (end_tag - int(round(time.time() * 1000))) / 1000
-    print("begin_tag : " + str(begin_tag))
-    print("end_tag : " + str(end_tag))
+    interval_timer = (ctx_data.get_validity_end() - int(round(time.time() * 1000))) / 1000
+    print("begin_tag : " + str(ctx_data.get_validity_begin()))
+    print("end_tag : " + str(ctx_data.get_validity_end()))
     print("current time : " + str(int(round(time.time() * 1000))))
     print("interval_timer : " + str(interval_timer))
     ctx_timer_threads[ctx_data.get_object_id()] = threading.Timer(interval_timer, ctx_timer_thread,

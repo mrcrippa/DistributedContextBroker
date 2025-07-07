@@ -26,7 +26,6 @@ def create_ping_message_string():
 
     return dict_as_string
 
-
 def create_request_response_message_string(ctx_info: ContextInfo) -> str:
     dict_as_string = json.dumps({"TYPE": "RESPONSE", "TIMESTAMP": str(int(round(
         time.time() * 1000))), "PROVIDER_ID": ctx_info.get_provider_id(), "ENTITY_ID": ctx_info.get_entity_id(),

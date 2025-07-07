@@ -1,0 +1,20 @@
+testing
+
+    subscribe
+        check notifying subscriber if there is already data in the context table
+    update
+        not well formed - none
+        not well formed - wrong validity begin and end, all variations
+        check deletion and creation of entry
+        check deletion and creation of timer
+        check timer expiring
+        check notifying subscriber if there is data in the context table
+        multiple at the same time
+    request
+        not well formed
+        well formed not found
+        well formed found
+        multiple at the same time
+
+logging
+documenting

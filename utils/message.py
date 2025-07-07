@@ -4,7 +4,7 @@ import time
 
 message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_REQUEST", "RESPONSE"}
 
-#check if a string is a valid integer bigger than zero
+# check if a string is a valid integer bigger than zero
 def check_integer_bigger_than_zero(value):
     result = False
     try:
@@ -39,16 +39,16 @@ class Message(object):
                         self._message_tokens.get("TIMESTAMP")):
                     self._message_type = self._message_tokens.get("TYPE")
                     self._message_timestamp = self._message_tokens.get("TIMESTAMP")
-                    if self._message_tokens.get("TYPE") == "SUBSCRIBE" and self.verify_sub_message():
-                        self._well_formed = True
-                    elif self._message_tokens.get("TYPE") == "UPDATE" and self.verify_update_message():
-                        self._well_formed = True
-                    elif self._message_tokens.get("TYPE") == "REQUEST" and self.verify_request_message():
-                        self._well_formed = True
+                    if self._message_tokens.get("TYPE") == "SUBSCRIBE":
+                        self._well_formed = self.is_sub_message_well_formed()
+                    elif self._message_tokens.get("TYPE") == "UPDATE":
+                        self._well_formed = self.is_update_message_well_formed()
+                    elif self._message_tokens.get("TYPE") == "REQUEST":
+                        self._well_formed = self.is_request_message_well_formed()
                     else:
                         self._well_formed = True
 
-    def verify_sub_message(self):
+    def is_sub_message_well_formed(self):
 
         well_formed = True
 
@@ -60,16 +60,16 @@ class Message(object):
             well_formed = False
         elif self._message_tokens.get("SUBSCRIBER_ADDRESS") is None:
             well_formed = False
-        elif self._message_tokens.get("SUBSCRIBER_PORT") is None and not check_integer_bigger_than_zero(
+        elif self._message_tokens.get("SUBSCRIBER_PORT") is None or not check_integer_bigger_than_zero(
                 self._message_tokens.get("SUBSCRIBER_PORT")):
             well_formed = False
-        elif self._message_tokens.get("DURATION") is None and not check_integer_bigger_than_zero(
+        elif self._message_tokens.get("DURATION") is None or not check_integer_bigger_than_zero(
                 self._message_tokens.get("DURATION")):
             well_formed = False
 
         return well_formed
 
-    def verify_update_message(self):
+    def is_update_message_well_formed(self):
 
         well_formed = True
 
@@ -83,10 +83,10 @@ class Message(object):
             well_formed = False
         elif self._message_tokens.get("DATA") is None:
             well_formed = False
-        elif self._message_tokens.get("VALIDITY_BEGIN") is None and not check_integer_bigger_than_zero(
+        elif self._message_tokens.get("VALIDITY_BEGIN") is None or not check_integer_bigger_than_zero(
                 self._message_tokens.get("VALIDITY_BEGIN")):
             well_formed = False
-        elif self._message_tokens.get("VALIDITY_END") is None and not check_integer_bigger_than_zero(
+        elif self._message_tokens.get("VALIDITY_END") is None or not check_integer_bigger_than_zero(
                 self._message_tokens.get("VALIDITY_END")):
             well_formed = False
         else:
@@ -101,7 +101,7 @@ class Message(object):
 
         return well_formed
 
-    def verify_request_message(self):
+    def is_request_message_well_formed(self):
 
         well_formed = True
 
