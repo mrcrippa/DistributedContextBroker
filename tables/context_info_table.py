@@ -2,6 +2,7 @@ import time
 
 from tables.context_info import ContextInfo
 
+
 class ContextInfoTable(object):
     """
     Class representing a table with all the gathered context information
@@ -14,17 +15,19 @@ class ContextInfoTable(object):
         if context_info_object is not None:
             self._table[context_info_object.get_object_id()] = context_info_object
 
-    def remove_entry(self, entry_id):
+    def remove_entry(self, entry_id: str):
+        """removes an entry from the table, if the entry doesn't exist, then nothing happens"""
         if entry_id is not None and entry_id in self._table:
             del self._table[entry_id]
-        return None
 
-    def search_entry(self, entity_id, entity_type, scope):
+    def search_entry(self, entity_id: str, entity_type: str, scope: str) -> ContextInfo | None:
+        """searches for an entry from the table, if entry exist, returns the entry
+         if entry doesn't exist, then returns None"""
         if entity_id is not None and entity_type is not None and scope is not None:
             key_identifier = str(hash(entity_id + entity_type + scope))
             if key_identifier in self._table:
 
-                begin_tag = int(self._table[key_identifier].get_validity_begin())
+                begin_tag = int(self._table[key_identifier].get_validity_begin)
                 end_tag = int(self._table[key_identifier].get_validity_end())
                 current_time = int(round(time.time() * 1000))
 
@@ -33,8 +36,8 @@ class ContextInfoTable(object):
                     return self._table[key_identifier]
         return None
 
-    def print(self):
+    def print(self) -> str:
         result = ""
         for entry in self._table.values():
-            result += entry.print() + " || " + '\n'
+            result += '\n' + entry.print() + " ||"
         return result

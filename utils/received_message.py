@@ -2,10 +2,12 @@ import json
 import logging
 import time
 
+# set with the valid types of messages the broker will send or receive
 message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "REQUEST", "RESPONSE"}
 
-# check if a string is a valid integer bigger than zero
-def check_integer_bigger_than_zero(value):
+
+def check_if_string_is_valid_integer_bigger_than_zero(value: str) -> bool:
+    """check if a string is a valid integer bigger than zero"""
     result = False
     try:
         s = int(value)
@@ -16,9 +18,9 @@ def check_integer_bigger_than_zero(value):
     return result
 
 
-class Message(object):
+class ReceivedMessage(object):
     """
-    Class representing a message received or sent by the Broker
+    Class representing a message received by the Broker
     """
 
     def __init__(self, message_raw_data):
@@ -28,17 +30,26 @@ class Message(object):
         self._message_type = ""
         self._message_timestamp = 0
 
+        # the message strings are in JSON
+        # check if the message is valid JSON
         try:
             self._message_tokens = json.loads(message_raw_data)
         except json.JSONDecodeError:
             logging.error("Message decode error")
 
+        # if the deserialization worked
         if self._message_tokens:
+            # all message need at least the type and timestamp
             if self._message_tokens.get("TYPE") and self._message_tokens.get("TIMESTAMP"):
-                if self._message_tokens.get("TYPE") in message_type_set and check_integer_bigger_than_zero(
-                        self._message_tokens.get("TIMESTAMP")):
+                # check if type is a valid one, and if the timestamp is correct
+                if self._message_tokens.get(
+                        "TYPE") in message_type_set and check_if_string_is_valid_integer_bigger_than_zero(
+                    self._message_tokens.get("TIMESTAMP")):
+
                     self._message_type = self._message_tokens.get("TYPE")
                     self._message_timestamp = self._message_tokens.get("TIMESTAMP")
+
+                    # verify the message further based on the type
                     if self._message_tokens.get("TYPE") == "SUBSCRIBE":
                         self._well_formed = self.is_sub_message_well_formed()
                     elif self._message_tokens.get("TYPE") == "UPDATE":
@@ -46,10 +57,11 @@ class Message(object):
                     elif self._message_tokens.get("TYPE") == "REQUEST":
                         self._well_formed = self.is_request_message_well_formed()
                     else:
+                        # for PING messages
                         self._well_formed = True
 
-    def is_sub_message_well_formed(self):
-
+    def is_sub_message_well_formed(self) -> bool:
+        """check if a SUBSCRIBE message is well-formed"""
         well_formed = True
 
         if self._message_tokens.get("ENTITY_ID") is None:
@@ -60,17 +72,18 @@ class Message(object):
             well_formed = False
         elif self._message_tokens.get("SUBSCRIBER_ADDRESS") is None:
             well_formed = False
-        elif self._message_tokens.get("SUBSCRIBER_PORT") is None or not check_integer_bigger_than_zero(
-                self._message_tokens.get("SUBSCRIBER_PORT")):
+        elif self._message_tokens.get(
+                "SUBSCRIBER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+            self._message_tokens.get("SUBSCRIBER_PORT")):
             well_formed = False
-        elif self._message_tokens.get("DURATION") is None or not check_integer_bigger_than_zero(
+        elif self._message_tokens.get("DURATION") is None or not check_if_string_is_valid_integer_bigger_than_zero(
                 self._message_tokens.get("DURATION")):
             well_formed = False
 
         return well_formed
 
-    def is_update_message_well_formed(self):
-
+    def is_update_message_well_formed(self) -> bool:
+        """check if a UPDATE message is well-formed"""
         well_formed = True
 
         if self._message_tokens.get("ENTITY_ID") is None:
@@ -83,18 +96,26 @@ class Message(object):
             well_formed = False
         elif self._message_tokens.get("DATA") is None:
             well_formed = False
-        elif self._message_tokens.get("VALIDITY_BEGIN") is None or not check_integer_bigger_than_zero(
-                self._message_tokens.get("VALIDITY_BEGIN")):
+        elif self._message_tokens.get(
+                "VALIDITY_BEGIN") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+            self._message_tokens.get("VALIDITY_BEGIN")):
             well_formed = False
-        elif self._message_tokens.get("VALIDITY_END") is None or not check_integer_bigger_than_zero(
+        elif self._message_tokens.get("VALIDITY_END") is None or not check_if_string_is_valid_integer_bigger_than_zero(
                 self._message_tokens.get("VALIDITY_END")):
             well_formed = False
         else:
+            # checks if the validity timestamps are correct
+            #  there two valid situations:
+            #  the validity of the update begins before the current time and ends after the current time
+            #  the validity of the update begins and ends after the current time (in the future)
+            # any request for the data will only return when the data is valid
             begin_tag = int(self._message_tokens.get("VALIDITY_BEGIN"))
             end_tag = int(self._message_tokens.get("VALIDITY_END"))
             current_time = int(round(time.time() * 1000))
 
+            # begin comes before end
             end_after_begin = begin_tag < end_tag
+            # end comes after the current time
             end_after_current = current_time < end_tag
 
             if not (end_after_begin and end_after_current):
@@ -102,8 +123,8 @@ class Message(object):
 
         return well_formed
 
-    def is_request_message_well_formed(self):
-
+    def is_request_message_well_formed(self) -> bool:
+        """check if a REQUEST message is well-formed"""
         well_formed = True
 
         if self._message_tokens.get("ENTITY_ID") is None:
@@ -115,14 +136,14 @@ class Message(object):
 
         return well_formed
 
-    def is_well_formed(self):
+    def is_well_formed(self) -> bool:
         return self._well_formed
 
-    def get_message_token(self, key):
-        if self._message_tokens.get(key):
+    def get_message_token(self, key: str) -> str|None:
+        if key is not None and self._message_tokens.get(key):
             return self._message_tokens.get(key)
         else:
             return None
 
-    def print_message(self):
+    def print_message(self) -> str:
         return str(self._message_tokens)
