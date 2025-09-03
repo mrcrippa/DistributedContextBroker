@@ -1,0 +1,13 @@
+[config_values]
+##########################
+# which address to host the broker
+# if port is 0, then the broker will search for a random port
+host_broker_ip = 127.0.0.1
+port_broker_nr = 0
+##########################
+# name of the log file
+log_file_name = log_context_broker
+##########################
+# identifier for this broker, if value is 0 then a random one is generated
+broker_id = 0
+

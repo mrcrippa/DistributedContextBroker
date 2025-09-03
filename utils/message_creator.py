@@ -1,6 +1,7 @@
 import json
 import time
 
+from global_data import broker_neighbors
 from tables.context_info import ContextInfo
 
 
@@ -34,11 +35,19 @@ def create_ping_message_string() -> str:
     return dict_as_string
 
 
-def create_request_response_message_string(ctx_info: ContextInfo) -> str:
+def create_context_response_message_string(ctx_info: ContextInfo) -> str:
     """returns a RESPONSE message string - JSON"""
-    dict_as_string = json.dumps({"TYPE": "RESPONSE", "TIMESTAMP": str(int(round(
+    dict_as_string = json.dumps({"TYPE": "CONTEXT_RESPONSE", "TIMESTAMP": str(int(round(
         time.time() * 1000))), "PROVIDER_ID": ctx_info.get_provider_id(), "ENTITY_ID": ctx_info.get_entity_id(),
                                  "ENTITY_TYPE": ctx_info.get_entity_type(), "SCOPE": ctx_info.get_scope(),
                                  "VALIDITY_BEGIN": str(ctx_info.get_validity_begin),
                                  "VALIDITY_END": str(ctx_info.get_validity_end()), "DATA": ctx_info.get_data()})
     return dict_as_string
+
+
+def create_broker_neighbors_response_message_string(broker_id: str, broker_address: str, broker_port: str) -> str:
+    """returns a BROKER_NEIGHBORS_RESPONSE message string - JSON"""
+    msg_string = json.dumps({"TYPE": "BROKER_NEIGHBORS_RESPONSE", "TIMESTAMP": str(int(round(
+        time.time() * 1000))), "BROKER_ID": broker_id, "BROKER_ADDRESS": broker_address,
+                                 "BROKER_PORT": broker_port, "BROKER_NEIGHBORS": broker_neighbors.print_table()})
+    return msg_string

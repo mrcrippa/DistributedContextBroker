@@ -27,7 +27,7 @@ class ContextInfoTable(object):
             key_identifier = str(hash(entity_id + entity_type + scope))
             if key_identifier in self._table:
 
-                begin_tag = int(self._table[key_identifier].get_validity_begin)
+                begin_tag = int(self._table[key_identifier].get_validity_begin())
                 end_tag = int(self._table[key_identifier].get_validity_end())
                 current_time = int(round(time.time() * 1000))
 

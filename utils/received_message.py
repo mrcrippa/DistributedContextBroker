@@ -3,7 +3,8 @@ import logging
 import time
 
 # set with the valid types of messages the broker will send or receive
-message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "REQUEST", "RESPONSE"}
+message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_REQUEST", "CONTEXT_RESPONSE", "MESSAGE",
+                    "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE"}
 
 
 def check_if_string_is_valid_integer_bigger_than_zero(value: str) -> bool:
@@ -54,11 +55,50 @@ class ReceivedMessage(object):
                         self._well_formed = self.is_sub_message_well_formed()
                     elif self._message_tokens.get("TYPE") == "UPDATE":
                         self._well_formed = self.is_update_message_well_formed()
-                    elif self._message_tokens.get("TYPE") == "REQUEST":
-                        self._well_formed = self.is_request_message_well_formed()
+                    elif self._message_tokens.get("TYPE") == "CONTEXT_REQUEST":
+                        self._well_formed = self.is_context_request_message_well_formed()
+                    elif self._message_tokens.get("TYPE") == "BROKER_NEIGHBORS_REQUEST":
+                        self._well_formed = self.is_broker_neighbors_request_message_well_formed()
+                    elif self._message_tokens.get("TYPE") == "BROKER_NEIGHBORS_RESPONSE":
+                        self._well_formed = self.is_broker_neighbors_response_message_well_formed()
                     else:
                         # for PING messages
                         self._well_formed = True
+
+    def is_broker_neighbors_response_message_well_formed(self) -> bool:
+        """check if a BROKER_NEIGHBORS_REQUEST message is well-formed"""
+        well_formed = True
+        if self._message_tokens.get("BROKER_ID") is None:
+            well_formed = False
+        elif self._message_tokens.get("BROKER_ADDRESS") is None:
+            well_formed = False
+        elif self._message_tokens.get("BROKER_NEIGHBORS") is None:
+            well_formed = False
+        elif self._message_tokens.get(
+                "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+            self._message_tokens.get("BROKER_PORT")):
+            well_formed = False
+
+        if well_formed:
+            for neighbor in self._message_tokens.get("BROKER_NEIGHBORS"):
+                if neighbor.get("broker_id") is None or neighbor.get("broker_address") is None or neighbor.get("broker_port") is None:
+                    well_formed = False
+
+        return well_formed
+
+    def is_broker_neighbors_request_message_well_formed(self) -> bool:
+        """check if a BROKER_NEIGHBORS_REQUEST message is well-formed"""
+        well_formed = True
+        if self._message_tokens.get("BROKER_ID") is None:
+            well_formed = False
+        elif self._message_tokens.get("BROKER_ADDRESS") is None:
+            well_formed = False
+        elif self._message_tokens.get(
+                "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+            self._message_tokens.get("BROKER_PORT")):
+            well_formed = False
+
+        return well_formed
 
     def is_sub_message_well_formed(self) -> bool:
         """check if a SUBSCRIBE message is well-formed"""
@@ -123,8 +163,8 @@ class ReceivedMessage(object):
 
         return well_formed
 
-    def is_request_message_well_formed(self) -> bool:
-        """check if a REQUEST message is well-formed"""
+    def is_context_request_message_well_formed(self) -> bool:
+        """check if a CONTEXT_REQUEST message is well-formed"""
         well_formed = True
 
         if self._message_tokens.get("ENTITY_ID") is None:
@@ -139,7 +179,7 @@ class ReceivedMessage(object):
     def is_well_formed(self) -> bool:
         return self._well_formed
 
-    def get_message_token(self, key: str) -> str|None:
+    def get_message_token(self, key: str) -> str | None:
         if key is not None and self._message_tokens.get(key):
             return self._message_tokens.get(key)
         else:
