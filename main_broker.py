@@ -16,7 +16,7 @@ from utils.received_message import *
 from utils.message_creator import *
 
 
-def broker_ping(broker_sock, broker_sock_lock, this_broker_id, this_broker_address, this_broker_port):
+def neighbour_broker_live_check(broker_sock, broker_sock_lock, this_broker_id, this_broker_address, this_broker_port):
     # checking if any of your neighbours is offline, by requesting their list of neighbours
     logger.info("broker ping")
 
@@ -24,12 +24,14 @@ def broker_ping(broker_sock, broker_sock_lock, this_broker_id, this_broker_addre
 
     broker_neighbors_lock.acquire()
     for entry in broker_neighbors.get_table():
-        broker_sock_lock.acquire()
-        broker_sock.sendto(str.encode(msg), (entry.get_broker_address(), entry.get_broker_port()))
-        broker_sock_lock.release()
+        if entry.is_broker_neighbour_potentially_offline():
+            broker_sock_lock.acquire()
+            broker_sock.sendto(str.encode(msg),
+                               (entry.get_broker_neighbour_address(), entry.get_broker_neighbour_port()))
+            broker_sock_lock.release()
     broker_neighbors_lock.release()
 
-    threading.Timer(30, broker_ping,
+    threading.Timer(15, neighbour_broker_live_check,
                     [broker_sock, broker_sock_lock, this_broker_id, this_broker_address, this_broker_port]).start()
 
 
@@ -140,12 +142,18 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock, 
                 (requester_broker_address, int(requester_broker_port)))
             broker_sock_lock.release()
 
-            if broker_neighbors.search_entry(requester_broker_id) is None:
+            searched_neighbour = broker_neighbors.search_entry(requester_broker_id)
+
+            if searched_neighbour is None:
                 neighbor = BrokerNeighborInfo()
-                neighbor.set_broker_id(requester_broker_id)
-                neighbor.set_broker_address(requester_broker_address)
-                neighbor.set_broker_port(requester_broker_port)
+                neighbor.set_broker_neighbour_id(requester_broker_id)
+                neighbor.set_broker_neighbour_address(requester_broker_address)
+                neighbor.set_broker_neighbour_port(requester_broker_port)
+                neighbor.set_broker_neighbour_online(True)
                 broker_neighbors.add_entry(neighbor)
+            else:
+                searched_neighbour.set_broker_neighbour_online(True)
+
             broker_neighbors_lock.release()
 
         elif received_msg.get_message_token("TYPE") == "BROKER_NEIGHBORS_RESPONSE":
@@ -160,22 +168,32 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock, 
             responder_neighbors_list = received_msg.get_message_token("BROKER_NEIGHBORS")
 
             # add responder broker if not already in the broker neighbour table
-            if broker_neighbors.search_entry(responder_broker_id) is None:
+
+            searched_neighbour = broker_neighbors.search_entry(responder_broker_id)
+
+            if searched_neighbour is None:
                 neighbor = BrokerNeighborInfo()
-                neighbor.set_broker_id(responder_broker_id)
-                neighbor.set_broker_address(responder_broker_address)
-                neighbor.set_broker_port(responder_broker_port)
+                neighbor.set_broker_neighbour_id(responder_broker_id)
+                neighbor.set_broker_neighbour_address(responder_broker_address)
+                neighbor.set_broker_neighbour_port(responder_broker_port)
+                neighbor.set_broker_neighbour_online(True)
                 broker_neighbors.add_entry(neighbor)
+            else:
+                searched_neighbour.set_broker_neighbour_online(True)
 
             # insert neighbours in broker neighbours table
             received_neighbour_list = json.loads(responder_neighbors_list)
             for entry in received_neighbour_list:
-                if broker_neighbors.search_entry(entry.get("BROKER_ID")) is None:
+                s_b_n = broker_neighbors.search_entry(entry.get("BROKER_ID"))
+                if s_b_n is None:
                     neighbor = BrokerNeighborInfo()
-                    neighbor.set_broker_id(entry.get("BROKER_ID"))
-                    neighbor.set_broker_address(entry.get("BROKER_ADDRESS"))
-                    neighbor.set_broker_port(entry.get("BROKER_PORT"))
+                    neighbor.set_broker_neighbour_id(entry.get("BROKER_ID"))
+                    neighbor.set_broker_neighbour_address(entry.get("BROKER_ADDRESS"))
+                    neighbor.set_broker_neighbour_port(entry.get("BROKER_PORT"))
+                    neighbor.set_broker_neighbour_online(True)
                     broker_neighbors.add_entry(neighbor)
+                else:
+                    s_b_n.set_broker_neighbour_online(True)
 
             broker_neighbors_lock.release()
 
@@ -241,8 +259,25 @@ def main():
     # lock used to coordinate among various threads, so only one can access the socket at a time
     broker_sock_lock = threading.Lock()
 
+    # get list of start neighbours
+    print(config['config_values']['start_neighbours'])
+    start_neighbours = json.loads(config['config_values']['start_neighbours'])
+
+    broker_neighbors_lock.acquire()
+
+    for index in range(0, len(start_neighbours),3):
+        neighbor = BrokerNeighborInfo()
+        neighbor.set_broker_neighbour_id(start_neighbours[index])
+        neighbor.set_broker_neighbour_address(start_neighbours[index + 1])
+        neighbor.set_broker_neighbour_port(start_neighbours[index + 2])
+        neighbor.set_broker_neighbour_online(True)
+        broker_neighbors.add_entry(neighbor)
+
+    broker_neighbors_lock.release()
+
+
     # start the broker ping regular timer
-    threading.Timer(30, broker_ping,
+    threading.Timer(1, neighbour_broker_live_check,
                     [broker_sock, broker_sock_lock, this_broker_id, this_broker_address, this_broker_port]).start()
 
     while True:

@@ -1,4 +1,15 @@
-check broker.sendto exceptions
+########################
+DOING NOW
+
+Startup process
+   	Start with a list of broker addresses
+   	Ask all of them for a list of neighbors
+    Ping all broker in the list, to remove offline brokers
+
+
+
+########################################################
+STILL TO DO
 
 New messages
     Broker context request
@@ -11,15 +22,6 @@ New messages
         Normal context response
 
 New processes
-	Regular check on neighbors
-    	Ask for their neighbor list
-	    If no response, remove from neighbor list
-
-	Startup process
-    	Start with a list of broker addresses
-    	Ask all of them for a list of neighbors
-	    Ping all broker in the list, to remove offline brokers
-
 	Context request
     	Check locally
     	Then check with neighbors
