@@ -26,6 +26,13 @@ class BrokerNeighborTable(object):
             return self._table[broker_id]
         return None
 
+    def get_table(self) -> list:
+        result = []
+        for entry in self._table.values():
+            result.append(entry)
+        return result
+
+
     def print_table(self) -> str:
         """returns the table as a JSON string"""
         temp_list = []

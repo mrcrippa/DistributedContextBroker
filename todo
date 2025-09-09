@@ -1,3 +1,44 @@
+check broker.sendto exceptions
+
+New messages
+    Broker context request
+        Request
+        Original broker address
+        Maximum ttl for the request
+        Maximum hops
+        List of already checked brokers
+    Broker context response
+        Normal context response
+
+New processes
+	Regular check on neighbors
+    	Ask for their neighbor list
+	    If no response, remove from neighbor list
+
+	Startup process
+    	Start with a list of broker addresses
+    	Ask all of them for a list of neighbors
+	    Ping all broker in the list, to remove offline brokers
+
+	Context request
+    	Check locally
+    	Then check with neighbors
+        	Small local flooding
+	        Pick one for random walk
+	        Be aware of TTL and maximum hops and already visited brokers
+
+	Broker context request
+    	Check locally
+        	If available
+            	Check TTL
+            	Send broker context response to original broker
+           	If not available
+            	Then check with neighbors
+                	Small local flooding
+                	Pick one for random walk
+                	Be aware of TTL and maximum hops and already visited brokers
+
+    If no subscription local, then redirect to another broker?
 
 
 

@@ -9,12 +9,6 @@ from threading import Lock
 
 
 ####################################
-# broker identifying information
-# these variables should be set in the main method during start up
-broker_id = ''
-broker_address = ''
-broker_port = ''
-####################################
 # general logger variable
 logger = logging.getLogger()
 ####################################

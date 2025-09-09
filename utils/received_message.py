@@ -3,7 +3,7 @@ import logging
 import time
 
 # set with the valid types of messages the broker will send or receive
-message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_REQUEST", "CONTEXT_RESPONSE", "MESSAGE",
+message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_REQUEST", "CONTEXT_RESPONSE",
                     "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE"}
 
 
@@ -61,12 +61,69 @@ class ReceivedMessage(object):
                         self._well_formed = self.is_broker_neighbors_request_message_well_formed()
                     elif self._message_tokens.get("TYPE") == "BROKER_NEIGHBORS_RESPONSE":
                         self._well_formed = self.is_broker_neighbors_response_message_well_formed()
-                    else:
-                        # for PING messages
-                        self._well_formed = True
+                    elif self._message_tokens.get("TYPE") == "PING":
+                        self._well_formed = self.is_ping_message_well_formed()
+                    elif self._message_tokens.get("TYPE") == "ACK":
+                        self._well_formed = self.is_ack_message_well_formed()
+                    elif self._message_tokens.get("TYPE") == "NACK":
+                        self._well_formed = self.is_nack_message_well_formed()
+
+    def is_ack_message_well_formed(self) -> bool:
+        """check if a ACK message is well-formed"""
+        well_formed = True
+        if self._message_tokens.get("BROKER_ID") is None:
+            well_formed = False
+        elif self._message_tokens.get("BROKER_ADDRESS") is None:
+            well_formed = False
+        elif self._message_tokens.get("OPERATION") is None:
+            well_formed = False
+        elif self._message_tokens.get("REQUESTER") is None:
+            well_formed = False
+        elif self._message_tokens.get("REASON") is None:
+            well_formed = False
+        elif self._message_tokens.get(
+                "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+            self._message_tokens.get("BROKER_PORT")):
+            well_formed = False
+
+        return well_formed
+
+    def is_nack_message_well_formed(self) -> bool:
+        """check if a NACK message is well-formed"""
+        well_formed = True
+        if self._message_tokens.get("BROKER_ID") is None:
+            well_formed = False
+        elif self._message_tokens.get("BROKER_ADDRESS") is None:
+            well_formed = False
+        elif self._message_tokens.get("OPERATION") is None:
+            well_formed = False
+        elif self._message_tokens.get("REQUESTER") is None:
+            well_formed = False
+        elif self._message_tokens.get("REASON") is None:
+            well_formed = False
+        elif self._message_tokens.get(
+                "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+            self._message_tokens.get("BROKER_PORT")):
+            well_formed = False
+
+        return well_formed
+
+    def is_ping_message_well_formed(self) -> bool:
+        """check if a PING message is well-formed"""
+        well_formed = True
+        if self._message_tokens.get("BROKER_ID") is None:
+            well_formed = False
+        elif self._message_tokens.get("BROKER_ADDRESS") is None:
+            well_formed = False
+        elif self._message_tokens.get(
+                "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+            self._message_tokens.get("BROKER_PORT")):
+            well_formed = False
+
+        return well_formed
 
     def is_broker_neighbors_response_message_well_formed(self) -> bool:
-        """check if a BROKER_NEIGHBORS_REQUEST message is well-formed"""
+        """check if a BROKER_NEIGHBORS_RESPONSE message is well-formed"""
         well_formed = True
         if self._message_tokens.get("BROKER_ID") is None:
             well_formed = False
@@ -81,7 +138,8 @@ class ReceivedMessage(object):
 
         if well_formed:
             for neighbor in self._message_tokens.get("BROKER_NEIGHBORS"):
-                if neighbor.get("broker_id") is None or neighbor.get("broker_address") is None or neighbor.get("broker_port") is None:
+                if neighbor.get("broker_id") is None or neighbor.get("broker_address") is None or neighbor.get(
+                        "broker_port") is None:
                     well_formed = False
 
         return well_formed

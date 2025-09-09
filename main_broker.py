@@ -16,7 +16,25 @@ from utils.received_message import *
 from utils.message_creator import *
 
 
-def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock):
+def broker_ping(broker_sock, broker_sock_lock, this_broker_id, this_broker_address, this_broker_port):
+    # checking if any of your neighbours is offline, by requesting their list of neighbours
+    logger.info("broker ping")
+
+    msg = create_broker_neighbors_request_message_string(this_broker_id, this_broker_address, this_broker_port)
+
+    broker_neighbors_lock.acquire()
+    for entry in broker_neighbors.get_table():
+        broker_sock_lock.acquire()
+        broker_sock.sendto(str.encode(msg), (entry.get_broker_address(), entry.get_broker_port()))
+        broker_sock_lock.release()
+    broker_neighbors_lock.release()
+
+    threading.Timer(30, broker_ping,
+                    [broker_sock, broker_sock_lock, this_broker_id, this_broker_address, this_broker_port]).start()
+
+
+def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock, this_broker_id, this_broker_address,
+                 this_broker_port):
     """thread used to process received messages"""
     # the creation of the ReceivedMessage object already verifies if the message is well-formed
     received_msg = ReceivedMessage(received_raw_data)
@@ -28,7 +46,8 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock):
             # this should be used to check if the broker is alive and the current time at the broker
             logger.info("PING message received from " + str(sender_addr))
             broker_sock_lock.acquire()
-            broker_sock.sendto(str.encode(create_ping_message_string()), sender_addr)
+            broker_sock.sendto(str.encode(create_ping_message_string(this_broker_id, this_broker_address,
+                                                                     this_broker_port)), sender_addr)
             broker_sock_lock.release()
 
         elif received_msg.get_message_token("TYPE") == "SUBSCRIBE":
@@ -41,7 +60,8 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock):
 
             # notify the subscriber that the subscription was successfully done, sending an ACK message
             broker_sock_lock.acquire()
-            broker_sock.sendto(str.encode(create_ack_message_string("SUBSCRIBE", str(sender_addr),
+            broker_sock.sendto(str.encode(create_ack_message_string(this_broker_id, this_broker_address,
+                                                                    this_broker_port, "SUBSCRIBE", str(sender_addr),
                                                                     "Consumer subscribed to [ " + sub.get_entity_id() + " , " + sub.get_entity_type() + " , " + sub.get_scope() + " ]")),
                                (sub.get_subscriber_address(), sub.get_subscriber_port()))
 
@@ -67,7 +87,8 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock):
 
             # send an ACK message confirming the update
             broker_sock_lock.acquire()
-            broker_sock.sendto(str.encode(create_ack_message_string("UPDATE", str(sender_addr),
+            broker_sock.sendto(str.encode(create_ack_message_string(this_broker_id, this_broker_address,
+                                                                    this_broker_port, "UPDATE", str(sender_addr),
                                                                     "Update to [ " + ctx_data.get_entity_id() + " , " + ctx_data.get_entity_type() + " , " + ctx_data.get_scope() + " ]")),
                                sender_addr)
 
@@ -91,10 +112,14 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock):
             broker_sock_lock.acquire()
             if current_ctx_info is not None:
                 # if any matching data found, then send it to the requester
-                broker_sock.sendto(str.encode(create_context_response_message_string(current_ctx_info)), sender_addr)
+                broker_sock.sendto(
+                    str.encode(create_context_response_message_string(this_broker_id, this_broker_address,
+                                                                      this_broker_port, current_ctx_info)), sender_addr)
             else:
                 # if no data found, notify the requester
-                broker_sock.sendto(str.encode(create_nack_message_string("CONTEXT_REQUEST", str(sender_addr),
+                broker_sock.sendto(str.encode(create_nack_message_string(this_broker_id, this_broker_address,
+                                                                         this_broker_port, "CONTEXT_REQUEST",
+                                                                         str(sender_addr),
                                                                          "No context data found with the given parameters")),
                                    sender_addr)
             broker_sock_lock.release()
@@ -103,9 +128,6 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock):
             logger.info("BROKER_NEIGHBORS_REQUEST message received from " + str(sender_addr))
             broker_neighbors_lock.acquire()
 
-            # information about this broker
-            global broker_id, broker_address, broker_port
-
             # information about the requester broker
             requester_broker_id = received_msg.get_message_token("BROKER_ID")
             requester_broker_address = received_msg.get_message_token("BROKER_ADDRESS")
@@ -113,7 +135,8 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock):
 
             broker_sock_lock.acquire()
             broker_sock.sendto(
-                str.encode(create_broker_neighbors_response_message_string(broker_id, broker_address, broker_port)),
+                str.encode(create_broker_neighbors_response_message_string(this_broker_id, this_broker_address,
+                                                                           this_broker_port)),
                 (requester_broker_address, int(requester_broker_port)))
             broker_sock_lock.release()
 
@@ -124,12 +147,11 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock):
                 neighbor.set_broker_port(requester_broker_port)
                 broker_neighbors.add_entry(neighbor)
             broker_neighbors_lock.release()
+
         elif received_msg.get_message_token("TYPE") == "BROKER_NEIGHBORS_RESPONSE":
             # BROKER_NEIGHBORS_RESPONSE has a list of broker neighbors from another broker
             logger.info("BROKER_NEIGHBORS_RESPONSE message received from " + str(sender_addr))
             broker_neighbors_lock.acquire()
-            # information about this broker
-            global broker_id, broker_address, broker_port
 
             # information about the responder broker
             responder_broker_id = received_msg.get_message_token("BROKER_ID")
@@ -157,15 +179,14 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock):
 
             broker_neighbors_lock.release()
 
-
-
-
     else:
         # if the message is not well-formed, send a NACK message
         logger.info("received message not well formed from" + str(sender_addr))
         broker_sock_lock.acquire()
         broker_sock.sendto(
-            str.encode(create_nack_message_string("MESSAGE", str(sender_addr), "Received message is not well formed")),
+            str.encode(create_nack_message_string(this_broker_id, this_broker_address,
+                                                  this_broker_port, "MESSAGE", str(sender_addr),
+                                                  "Received message is not well formed")),
             sender_addr)
         broker_sock_lock.release()
 
@@ -175,11 +196,10 @@ def main():
     config = configparser.ConfigParser()
     config.read('broker_config_file')
 
-    global broker_id
     if config['config_values']['broker_id'] == '0':
-        broker_id = str(uuid.uuid4()).replace('-', '')[:8]
+        this_broker_id = str(uuid.uuid4()).replace('-', '')[:8]
     else:
-        broker_id = config['config_values']['broker_id']
+        this_broker_id = config['config_values']['broker_id']
 
     # set up logging environment
     log_queue = queue.Queue(-1)
@@ -191,7 +211,7 @@ def main():
     formatter = logging.Formatter('%(asctime)s - %(threadName)s - %(name)s - %(levelname)s - %(message)s')
     console_handler.setFormatter(formatter)
 
-    file_handler = logging.FileHandler(config['config_values']['log_file_name'] + "_" + broker_id + ".log")
+    file_handler = logging.FileHandler(config['config_values']['log_file_name'] + "_" + this_broker_id + ".log")
     file_handler.setFormatter(formatter)
 
     listener = QueueListener(log_queue, console_handler, file_handler)
@@ -215,12 +235,15 @@ def main():
             sys.exit()
         socket_connected = True
 
-    global broker_address, broker_port
-    broker_address = config['config_values']['host_broker_ip']
-    broker_port = str(port_broker_nr)
+    this_broker_address = config['config_values']['host_broker_ip']
+    this_broker_port = str(port_broker_nr)
 
     # lock used to coordinate among various threads, so only one can access the socket at a time
     broker_sock_lock = threading.Lock()
+
+    # start the broker ping regular timer
+    threading.Timer(30, broker_ping,
+                    [broker_sock, broker_sock_lock, this_broker_id, this_broker_address, this_broker_port]).start()
 
     while True:
         # main loop
@@ -229,7 +252,9 @@ def main():
         received_raw_data, sender_addr = broker_sock.recvfrom(1024)
         logger.info("received message from " + str(sender_addr))
 
-        Thread(target=service_task, args=[received_raw_data, sender_addr, broker_sock, broker_sock_lock]).start()
+        Thread(target=service_task,
+               args=[received_raw_data, sender_addr, broker_sock, broker_sock_lock, this_broker_id, this_broker_address,
+                     this_broker_port]).start()
 
 
 main()
