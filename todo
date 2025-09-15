@@ -6,31 +6,4 @@ STILL TO DO
 
 
 
-New processes
-	Sub request
-	    First broker
-    	    if not available, then check with neighbors
-    	        set maximum hops
-    	        add yourself to already checked brokers
-        	    pick a subset of neighbours, up to 5
-        	        Small local flooding (forward flag false)
-	                Pick one for random walk (forward flag true)
-
-	Broker sub request
-    	Check locally
-        	If available
-        	create sub
-                send response to client
-           	If not available
-           	    if maximum hops exceeded, end process
-           	    if not, reduce max hops by one
-           	    add yourself to already checked brokers
-            	Then check with neighbors
-                	pick a subset of neighbours, up to 5
-        	        Small local flooding (forward flag false)
-	                Pick one for random walk (forward flag true)
-
-
-
-
 

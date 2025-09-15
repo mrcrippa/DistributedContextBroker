@@ -1,4 +1,5 @@
 import json
+import random
 
 from tables.broker_neighbor_info import BrokerNeighborInfo
 
@@ -38,6 +39,24 @@ class BrokerNeighborTable(object):
             result.append(entry)
         return result
 
+    def get_small_flooding_list(self, checked_brokers: list) -> list:
+        """returns a list of neighbours to be used for the broker subscribe procedure
+           the first neighbours on the list is to be used for the random walk, the others should not forward their requests
+        """
+        result = []
+
+        to_be_verified = list(self._table.keys())
+
+        for entry in checked_brokers:
+            to_be_verified.remove(entry)
+
+        while to_be_verified:
+            selected = random.choice(to_be_verified)
+            to_be_verified.remove(selected)
+            if self._table[selected].is_broker_neighbour_online():
+                result.append(self._table[selected])
+
+        return result
 
     def print_table(self) -> str:
         """returns the table as a JSON string"""
@@ -46,9 +65,9 @@ class BrokerNeighborTable(object):
             if entry.is_broker_neighbour_potentially_offline():
                 continue
             if entry.is_broker_neighbour_online():
-                temp_dict = {"broker_id": entry.get_broker_neighbour_id(), "broker_address": entry.get_broker_neighbour_address(),
-                         "broker_port": str(entry.get_broker_neighbour_port())}
+                temp_dict = {"broker_id": entry.get_broker_neighbour_id(),
+                             "broker_address": entry.get_broker_neighbour_address(),
+                             "broker_port": str(entry.get_broker_neighbour_port())}
                 temp_list.append(temp_dict)
 
         return json.dumps(temp_list)
-

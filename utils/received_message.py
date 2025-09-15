@@ -3,8 +3,6 @@ import logging
 import time
 
 # set with the valid types of messages the broker will receive
-# message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_REQUEST", "CONTEXT_RESPONSE",
-#                    "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE", "BROKER_SUBSCRIBE"}
 message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_RESPONSE",
                     "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE", "BROKER_SUBSCRIBE"}
 
@@ -263,23 +261,10 @@ class ReceivedMessage(object):
 
         return well_formed
 
-    # def is_context_request_message_well_formed(self) -> bool:
-    #     """check if a CONTEXT_REQUEST message is well-formed"""
-    #     well_formed = True
-    #
-    #     if self._message_tokens.get("ENTITY_ID") is None:
-    #         well_formed = False
-    #     elif self._message_tokens.get("ENTITY_TYPE") is None:
-    #         well_formed = False
-    #     elif self._message_tokens.get("SCOPE") is None:
-    #         well_formed = False
-    #
-    #     return well_formed
-
     def is_well_formed(self) -> bool:
         return self._well_formed
 
-    def get_message_token(self, key: str) -> str | None:
+    def get_message_token(self, key: str):
         if key is not None and self._message_tokens.get(key):
             return self._message_tokens.get(key)
         else:
