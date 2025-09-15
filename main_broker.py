@@ -101,30 +101,30 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock, 
                                    (sub.get_subscriber_address(), sub.get_subscriber_port()))
             broker_sock_lock.release()
 
-        elif received_msg.get_message_token("TYPE") == "CONTEXT_REQUEST":
-            # a request for context data
-            logger.info("CONTEXT_REQUEST message received from " + str(sender_addr))
-
-            ctx_table_lock.acquire()
-            current_ctx_info = ctx_table.search_entry(received_msg.get_message_token("ENTITY_ID"),
-                                                      received_msg.get_message_token("ENTITY_TYPE"),
-                                                      received_msg.get_message_token("SCOPE"))
-            ctx_table_lock.release()
-
-            broker_sock_lock.acquire()
-            if current_ctx_info is not None:
-                # if any matching data found, then send it to the requester
-                broker_sock.sendto(
-                    str.encode(create_context_response_message_string(this_broker_id, this_broker_address,
-                                                                      this_broker_port, current_ctx_info)), sender_addr)
-            else:
-                # if no data found, notify the requester
-                broker_sock.sendto(str.encode(create_nack_message_string(this_broker_id, this_broker_address,
-                                                                         this_broker_port, "CONTEXT_REQUEST",
-                                                                         str(sender_addr),
-                                                                         "No context data found with the given parameters")),
-                                   sender_addr)
-            broker_sock_lock.release()
+        # elif received_msg.get_message_token("TYPE") == "CONTEXT_REQUEST":
+        #     # a request for context data
+        #     logger.info("CONTEXT_REQUEST message received from " + str(sender_addr))
+        #
+        #     ctx_table_lock.acquire()
+        #     current_ctx_info = ctx_table.search_entry(received_msg.get_message_token("ENTITY_ID"),
+        #                                               received_msg.get_message_token("ENTITY_TYPE"),
+        #                                               received_msg.get_message_token("SCOPE"))
+        #     ctx_table_lock.release()
+        #
+        #     broker_sock_lock.acquire()
+        #     if current_ctx_info is not None:
+        #         # if any matching data found, then send it to the requester
+        #         broker_sock.sendto(
+        #             str.encode(create_context_response_message_string(this_broker_id, this_broker_address,
+        #                                                               this_broker_port, current_ctx_info)), sender_addr)
+        #     else:
+        #         # if no data found, notify the requester
+        #         broker_sock.sendto(str.encode(create_nack_message_string(this_broker_id, this_broker_address,
+        #                                                                  this_broker_port, "CONTEXT_REQUEST",
+        #                                                                  str(sender_addr),
+        #                                                                  "No context data found with the given parameters")),
+        #                            sender_addr)
+        #     broker_sock_lock.release()
         elif received_msg.get_message_token("TYPE") == "BROKER_NEIGHBORS_REQUEST":
             # BROKER_NEIGHBORS_REQUEST messages get the list of broker neighbors in return
             logger.info("BROKER_NEIGHBORS_REQUEST message received from " + str(sender_addr))
@@ -283,7 +283,7 @@ def main():
     while True:
         # main loop
         # wait for messages, when one is received, create a service_task thread
-        print("Waiting for messages...")
+        print(this_broker_id + " - Waiting for messages...")
         received_raw_data, sender_addr = broker_sock.recvfrom(1024)
         logger.info("received message from " + str(sender_addr))
 

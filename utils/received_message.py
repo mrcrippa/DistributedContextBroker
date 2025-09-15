@@ -2,9 +2,11 @@ import json
 import logging
 import time
 
-# set with the valid types of messages the broker will send or receive
-message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_REQUEST", "CONTEXT_RESPONSE",
-                    "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE"}
+# set with the valid types of messages the broker will receive
+# message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_REQUEST", "CONTEXT_RESPONSE",
+#                    "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE", "BROKER_SUBSCRIBE"}
+message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_RESPONSE",
+                    "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE", "BROKER_SUBSCRIBE"}
 
 
 def check_if_string_is_valid_integer_bigger_than_zero(value: str) -> bool:
@@ -55,12 +57,14 @@ class ReceivedMessage(object):
                         self._well_formed = self.is_sub_message_well_formed()
                     elif self._message_tokens.get("TYPE") == "UPDATE":
                         self._well_formed = self.is_update_message_well_formed()
-                    elif self._message_tokens.get("TYPE") == "CONTEXT_REQUEST":
-                        self._well_formed = self.is_context_request_message_well_formed()
+                    # elif self._message_tokens.get("TYPE") == "CONTEXT_REQUEST":
+                    #  self._well_formed = self.is_context_request_message_well_formed()
                     elif self._message_tokens.get("TYPE") == "BROKER_NEIGHBORS_REQUEST":
                         self._well_formed = self.is_broker_neighbors_request_message_well_formed()
                     elif self._message_tokens.get("TYPE") == "BROKER_NEIGHBORS_RESPONSE":
                         self._well_formed = self.is_broker_neighbors_response_message_well_formed()
+                    elif self._message_tokens.get("TYPE") == "BROKER_SUBSCRIBE":
+                        self._well_formed = self.is_broker_subscribe_message_well_formed
                     elif self._message_tokens.get("TYPE") == "PING":
                         self._well_formed = self.is_ping_message_well_formed()
                     elif self._message_tokens.get("TYPE") == "ACK":
@@ -69,7 +73,7 @@ class ReceivedMessage(object):
                         self._well_formed = self.is_nack_message_well_formed()
 
     def is_ack_message_well_formed(self) -> bool:
-        """check if a ACK message is well-formed"""
+        """check if an ACK message is well-formed"""
         well_formed = True
         if self._message_tokens.get("BROKER_ID") is None:
             well_formed = False
@@ -129,7 +133,7 @@ class ReceivedMessage(object):
             well_formed = False
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
             well_formed = False
-        elif self._message_tokens.get("BROKER_NEIGHBORS") is None:
+        elif self._message_tokens.get("BROKER_NEIGHBORS") is None or type(self._message_tokens.get("BROKER_NEIGHBORS")).__name__ != "list":
             well_formed = False
         elif self._message_tokens.get(
                 "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
@@ -180,6 +184,44 @@ class ReceivedMessage(object):
 
         return well_formed
 
+    @property
+    def is_broker_subscribe_message_well_formed(self) -> bool:
+        """check if a BROKER_SUBSCRIBE message is well-formed"""
+        well_formed = True
+
+        if self._message_tokens.get("BROKER_ID") is None:
+            well_formed = False
+        elif self._message_tokens.get("BROKER_ADDRESS") is None:
+            well_formed = False
+        elif self._message_tokens.get(
+                "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+            self._message_tokens.get("BROKER_PORT")):
+            well_formed = False
+        elif self._message_tokens.get("ENTITY_ID") is None:
+            well_formed = False
+        elif self._message_tokens.get("ENTITY_TYPE") is None:
+            well_formed = False
+        elif self._message_tokens.get("SCOPE") is None:
+            well_formed = False
+        elif self._message_tokens.get("SUBSCRIBER_ADDRESS") is None:
+            well_formed = False
+        elif self._message_tokens.get(
+                "SUBSCRIBER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+            self._message_tokens.get("SUBSCRIBER_PORT")):
+            well_formed = False
+        elif self._message_tokens.get("DURATION") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+                self._message_tokens.get("DURATION")):
+            well_formed = False
+        elif self._message_tokens.get("MAXIMUM_HOPS") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+                self._message_tokens.get("MAXIMUM_HOPS")):
+            well_formed = False
+        elif self._message_tokens.get("FORWARD") is None or type(self._message_tokens.get("FORWARD")).__name__ != "bool":
+            well_formed = False
+        elif self._message_tokens.get("CHECKED_BROKERS") is None or type(self._message_tokens.get("CHECKED_BROKERS")).__name__ != "list":
+            well_formed = False
+
+        return well_formed
+
     def is_update_message_well_formed(self) -> bool:
         """check if a UPDATE message is well-formed"""
         well_formed = True
@@ -221,18 +263,18 @@ class ReceivedMessage(object):
 
         return well_formed
 
-    def is_context_request_message_well_formed(self) -> bool:
-        """check if a CONTEXT_REQUEST message is well-formed"""
-        well_formed = True
-
-        if self._message_tokens.get("ENTITY_ID") is None:
-            well_formed = False
-        elif self._message_tokens.get("ENTITY_TYPE") is None:
-            well_formed = False
-        elif self._message_tokens.get("SCOPE") is None:
-            well_formed = False
-
-        return well_formed
+    # def is_context_request_message_well_formed(self) -> bool:
+    #     """check if a CONTEXT_REQUEST message is well-formed"""
+    #     well_formed = True
+    #
+    #     if self._message_tokens.get("ENTITY_ID") is None:
+    #         well_formed = False
+    #     elif self._message_tokens.get("ENTITY_TYPE") is None:
+    #         well_formed = False
+    #     elif self._message_tokens.get("SCOPE") is None:
+    #         well_formed = False
+    #
+    #     return well_formed
 
     def is_well_formed(self) -> bool:
         return self._well_formed

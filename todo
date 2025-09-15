@@ -1,46 +1,35 @@
 ########################
 DOING NOW
 
-Startup process
-   	Start with a list of broker addresses
-   	Ask all of them for a list of neighbors
-    Ping all broker in the list, to remove offline brokers
-
-
-
 ########################################################
 STILL TO DO
 
-New messages
-    Broker context request
-        Request
-        Original broker address
-        Maximum ttl for the request
-        Maximum hops
-        List of already checked brokers
-    Broker context response
-        Normal context response
+
 
 New processes
-	Context request
-    	Check locally
-    	Then check with neighbors
-        	Small local flooding
-	        Pick one for random walk
-	        Be aware of TTL and maximum hops and already visited brokers
+	Sub request
+	    First broker
+    	    if not available, then check with neighbors
+    	        set maximum hops
+    	        add yourself to already checked brokers
+        	    pick a subset of neighbours, up to 5
+        	        Small local flooding (forward flag false)
+	                Pick one for random walk (forward flag true)
 
-	Broker context request
+	Broker sub request
     	Check locally
         	If available
-            	Check TTL
-            	Send broker context response to original broker
+        	create sub
+                send response to client
            	If not available
+           	    if maximum hops exceeded, end process
+           	    if not, reduce max hops by one
+           	    add yourself to already checked brokers
             	Then check with neighbors
-                	Small local flooding
-                	Pick one for random walk
-                	Be aware of TTL and maximum hops and already visited brokers
+                	pick a subset of neighbours, up to 5
+        	        Small local flooding (forward flag false)
+	                Pick one for random walk (forward flag true)
 
-    If no subscription local, then redirect to another broker?
 
 
 
