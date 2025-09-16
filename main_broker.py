@@ -9,41 +9,25 @@ from logging.handlers import QueueHandler, QueueListener
 from threading import Thread
 
 from global_data import *
-from services.subscribe_service import add_subscription
-from services.update_service import process_update
+from services.neighbour_service import neighbour_broker_live_check, process_broker_neighbors_request, \
+    process_broker_neighbors_response
+from services.subscribe_service import process_subscription
+from services.update_service import process_update_message
 from tables.broker_neighbor_info import BrokerNeighborInfo
 from utils.received_message import *
 from utils.message_creator import *
 
 
-def neighbour_broker_live_check(broker_sock, broker_sock_lock, this_broker_id, this_broker_address, this_broker_port):
-    # checking if any of your neighbours is offline, by requesting their list of neighbours
-    logger.info("broker ping")
-
-    msg = create_broker_neighbors_request_message_string(this_broker_id, this_broker_address, this_broker_port)
-
-    broker_neighbors_lock.acquire()
-    for entry in broker_neighbors.get_table():
-        if entry.is_broker_neighbour_potentially_offline():
-            broker_sock_lock.acquire()
-            broker_sock.sendto(str.encode(msg),
-                               (entry.get_broker_neighbour_address(), entry.get_broker_neighbour_port()))
-            broker_sock_lock.release()
-    broker_neighbors_lock.release()
-
-    threading.Timer(15, neighbour_broker_live_check,
-                    [broker_sock, broker_sock_lock, this_broker_id, this_broker_address, this_broker_port]).start()
-
-
-def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock, this_broker_id, this_broker_address,
-                 this_broker_port):
+def message_received_service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock, this_broker_id,
+                                  this_broker_address,
+                                  this_broker_port):
     """thread used to process received messages"""
     # the creation of the ReceivedMessage object already verifies if the message is well-formed
     received_msg = ReceivedMessage(received_raw_data)
     if received_msg.is_well_formed():
         logger.info("well formed message: " + received_msg.print_message() + " from " + str(sender_addr))
 
-        if received_msg.get_message_token("TYPE") == "PING":
+        if received_msg.get_token("TYPE") == "PING":
             # PING messages get a ping message in return
             # this should be used to check if the broker is alive and the current time at the broker
             logger.info("PING message received from " + str(sender_addr))
@@ -52,271 +36,37 @@ def service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock, 
                                                                      this_broker_port)), sender_addr)
             broker_sock_lock.release()
 
-        elif received_msg.get_message_token("TYPE") == "SUBSCRIBE":
+        elif received_msg.get_token("TYPE") == "SUBSCRIBE":
             logger.info("SUBSCRIBE message received from " + str(sender_addr))
 
-            # check if there is already data in the context info table matching the subscription
-            ctx_table_lock.acquire()
-            current_ctx_info = ctx_table.search_entry(received_msg.get_message_token("ENTITY_ID"),
-                                                      received_msg.get_message_token("ENTITY_TYPE"),
-                                                      received_msg.get_message_token("SCOPE"))
-            ctx_table_lock.release()
+            process_subscription(received_msg, sender_addr, this_broker_id, this_broker_address,
+                                   this_broker_port, broker_sock, broker_sock_lock, False)
 
-            if current_ctx_info is not None:
-                sub = add_subscription(received_msg)
-
-                logger.info("sub_table : " + sub_table.print())
-                logger.info("sub_timer_threads : " + str(sub_timer_threads))
-
-                broker_sock_lock.acquire()
-                # notify the subscriber that the subscription was successfully done, sending an ACK message
-                broker_sock.sendto(str.encode(create_ack_message_string(this_broker_id, this_broker_address,
-                                                                        this_broker_port, "SUBSCRIBE", str(sender_addr),
-                                                                        "Consumer subscribed to [ " + sub.get_entity_id() + " , " + sub.get_entity_type() + " , " + sub.get_scope() + " ]")),
-                                   (sub.get_subscriber_address(), sub.get_subscriber_port()))
-
-                # if there is data, then send it to the subscriber
-                broker_sock.sendto(str.encode(create_context_response_message_string(current_ctx_info)),
-                                   (sub.get_subscriber_address(), sub.get_subscriber_port()))
-                broker_sock_lock.release()
-            else:
-                broker_sub_msg_not_forward = create_broker_subscribe_message_string(this_broker_id, this_broker_address,
-                                                                                    this_broker_port,
-                                                                                    received_msg.get_message_token(
-                                                                                        "ENTITY_ID"),
-                                                                                    received_msg.get_message_token(
-                                                                                        "ENTITY_TYPE"),
-                                                                                    received_msg.get_message_token(
-                                                                                        "SCOPE"),
-                                                                                    received_msg.get_message_token(
-                                                                                        "SUBSCRIBER_ADDRESS"),
-                                                                                    received_msg.get_message_token(
-                                                                                        "SUBSCRIBER_PORT"),
-                                                                                    received_msg.get_message_token(
-                                                                                        "DURATION"),
-                                                                                    "2", False, [this_broker_id]
-                                                                                    )
-
-                broker_sub_msg_forward = create_broker_subscribe_message_string(this_broker_id, this_broker_address,
-                                                                                this_broker_port,
-                                                                                received_msg.get_message_token(
-                                                                                    "ENTITY_ID"),
-                                                                                received_msg.get_message_token(
-                                                                                    "ENTITY_TYPE"),
-                                                                                received_msg.get_message_token("SCOPE"),
-                                                                                received_msg.get_message_token(
-                                                                                    "SUBSCRIBER_ADDRESS"),
-                                                                                received_msg.get_message_token(
-                                                                                    "SUBSCRIBER_PORT"),
-                                                                                received_msg.get_message_token(
-                                                                                    "DURATION"),
-                                                                                "2", True, [this_broker_id]
-                                                                                )
-
-                broker_neighbors_lock.acquire()
-                small_flood = broker_neighbors.get_small_flooding_list([this_broker_id])
-
-                broker_sock_lock.acquire()
-                if small_flood:
-                    broker_sock.sendto(str.encode(broker_sub_msg_forward),
-                                       (small_flood[0].get_broker_neighbour_address(),
-                                        int(small_flood[0].get_broker_neighbour_port())))
-                    small_flood.pop(0)
-
-                while small_flood:
-                    broker_sock.sendto(str.encode(broker_sub_msg_not_forward),
-                                       ((small_flood[0].get_broker_neighbour_address(),
-                                         int(small_flood[0].get_broker_neighbour_port()))))
-                    small_flood.pop(0)
-
-                broker_sock_lock.release()
-                broker_neighbors_lock.release()
-
-        elif received_msg.get_message_token("TYPE") == "BROKER_SUBSCRIBE":
+        elif received_msg.get_token("TYPE") == "BROKER_SUBSCRIBE":
             logger.info("BROKER_SUBSCRIBE message received from " + str(sender_addr))
 
-            # check if there is already data in the context info table matching the subscription
-            ctx_table_lock.acquire()
-            current_ctx_info = ctx_table.search_entry(received_msg.get_message_token("ENTITY_ID"),
-                                                      received_msg.get_message_token("ENTITY_TYPE"),
-                                                      received_msg.get_message_token("SCOPE"))
-            ctx_table_lock.release()
+            process_subscription(received_msg, sender_addr, this_broker_id, this_broker_address,
+                                 this_broker_port, broker_sock, broker_sock_lock, True)
 
-            if current_ctx_info is not None:
-                sub = add_subscription(received_msg)
-
-                logger.info("sub_table : " + sub_table.print())
-                logger.info("sub_timer_threads : " + str(sub_timer_threads))
-
-                broker_sock_lock.acquire()
-                # notify the subscriber that the subscription was successfully done, sending an ACK message
-                broker_sock.sendto(str.encode(create_ack_message_string(this_broker_id, this_broker_address,
-                                                                        this_broker_port, "SUBSCRIBE", str(sender_addr),
-                                                                        "Consumer subscribed to [ " + sub.get_entity_id() + " , " + sub.get_entity_type() + " , " + sub.get_scope() + " ]")),
-                                   (sub.get_subscriber_address(), sub.get_subscriber_port()))
-
-                # if there is data, then send it to the subscriber
-                broker_sock.sendto(str.encode(create_context_response_message_string(current_ctx_info)),
-                                   (sub.get_subscriber_address(), sub.get_subscriber_port()))
-                broker_sock_lock.release()
-            else:
-
-                max_hops = int(received_msg.get_message_token("MAX_HOPS")) - 1
-
-                if max_hops > 0:
-
-                    checked_brokers = received_msg.get_message_token("CHECKED_BROKERS")
-                    checked_brokers.append(this_broker_id)
-
-                    broker_sub_msg_not_forward = create_broker_subscribe_message_string(this_broker_id,
-                                                                                        this_broker_address,
-                                                                                        this_broker_port,
-                                                                                        received_msg.get_message_token(
-                                                                                            "ENTITY_ID"),
-                                                                                        received_msg.get_message_token(
-                                                                                            "ENTITY_TYPE"),
-                                                                                        received_msg.get_message_token(
-                                                                                            "SCOPE"),
-                                                                                        received_msg.get_message_token(
-                                                                                            "SUBSCRIBER_ADDRESS"),
-                                                                                        received_msg.get_message_token(
-                                                                                            "SUBSCRIBER_PORT"),
-                                                                                        received_msg.get_message_token(
-                                                                                            "DURATION"),
-                                                                                        str(max_hops), False,
-                                                                                        checked_brokers
-                                                                                        )
-
-                    broker_sub_msg_forward = create_broker_subscribe_message_string(this_broker_id, this_broker_address,
-                                                                                    this_broker_port,
-                                                                                    received_msg.get_message_token(
-                                                                                        "ENTITY_ID"),
-                                                                                    received_msg.get_message_token(
-                                                                                        "ENTITY_TYPE"),
-                                                                                    received_msg.get_message_token(
-                                                                                        "SCOPE"),
-                                                                                    received_msg.get_message_token(
-                                                                                        "SUBSCRIBER_ADDRESS"),
-                                                                                    received_msg.get_message_token(
-                                                                                        "SUBSCRIBER_PORT"),
-                                                                                    received_msg.get_message_token(
-                                                                                        "DURATION"),
-                                                                                    str(max_hops), True, checked_brokers
-                                                                                    )
-
-                    broker_neighbors_lock.acquire()
-                    small_flood = broker_neighbors.get_small_flooding_list(checked_brokers)
-
-                    broker_sock_lock.acquire()
-                    if small_flood:
-                        broker_sock.sendto(str.encode(broker_sub_msg_forward),
-                                           (small_flood[0].get_broker_neighbour_address(),
-                                            int(small_flood[0].get_broker_neighbour_port())))
-                        small_flood.pop(0)
-
-                    while small_flood:
-                        broker_sock.sendto(str.encode(broker_sub_msg_not_forward),
-                                           ((small_flood[0].get_broker_neighbour_address(),
-                                             int(small_flood[0].get_broker_neighbour_port()))))
-                        small_flood.pop(0)
-
-                    broker_sock_lock.release()
-                    broker_neighbors_lock.release()
-
-
-        elif received_msg.get_message_token("TYPE") == "UPDATE":
+        elif received_msg.get_token("TYPE") == "UPDATE":
             # context provider update the context table with its data
             logger.info("UPDATE message received from " + str(sender_addr))
 
-            ctx_data = process_update(received_msg)
+            process_update_message(received_msg, sender_addr, this_broker_id, this_broker_address,
+                                   this_broker_port, broker_sock, broker_sock_lock)
 
-            logger.info("ctx_table : " + ctx_table.print())
-            logger.info("ctx_timer_threads : " + str(ctx_timer_threads))
-
-            # send an ACK message confirming the update
-            broker_sock_lock.acquire()
-            broker_sock.sendto(str.encode(create_ack_message_string(this_broker_id, this_broker_address,
-                                                                    this_broker_port, "UPDATE", str(sender_addr),
-                                                                    "Update to [ " + ctx_data.get_entity_id() + " , " + ctx_data.get_entity_type() + " , " + ctx_data.get_scope() + " ]")),
-                               sender_addr)
-
-            # if there are any subscriptions to this data, then notify all subscribers
-            for sub in sub_table.search_entry(ctx_data.get_entity_id(), ctx_data.get_entity_type(),
-                                              ctx_data.get_scope()):
-                broker_sock.sendto(str.encode(create_context_response_message_string(ctx_data)),
-                                   (sub.get_subscriber_address(), sub.get_subscriber_port()))
-            broker_sock_lock.release()
-        elif received_msg.get_message_token("TYPE") == "BROKER_NEIGHBORS_REQUEST":
+        elif received_msg.get_token("TYPE") == "BROKER_NEIGHBORS_REQUEST":
             # BROKER_NEIGHBORS_REQUEST messages get the list of broker neighbors in return
             logger.info("BROKER_NEIGHBORS_REQUEST message received from " + str(sender_addr))
-            broker_neighbors_lock.acquire()
 
-            # information about the requester broker
-            requester_broker_id = received_msg.get_message_token("BROKER_ID")
-            requester_broker_address = received_msg.get_message_token("BROKER_ADDRESS")
-            requester_broker_port = received_msg.get_message_token("BROKER_PORT")
+            process_broker_neighbors_request(received_msg, this_broker_id, this_broker_address,
+                                             this_broker_port, broker_sock, broker_sock_lock)
 
-            broker_sock_lock.acquire()
-            broker_sock.sendto(
-                str.encode(create_broker_neighbors_response_message_string(this_broker_id, this_broker_address,
-                                                                           this_broker_port)),
-                (requester_broker_address, int(requester_broker_port)))
-            broker_sock_lock.release()
-
-            searched_neighbour = broker_neighbors.search_entry(requester_broker_id)
-
-            if searched_neighbour is None:
-                neighbor = BrokerNeighborInfo()
-                neighbor.set_broker_neighbour_id(requester_broker_id)
-                neighbor.set_broker_neighbour_address(requester_broker_address)
-                neighbor.set_broker_neighbour_port(requester_broker_port)
-                neighbor.set_broker_neighbour_online(True)
-                broker_neighbors.add_entry(neighbor)
-            else:
-                searched_neighbour.set_broker_neighbour_online(True)
-
-            broker_neighbors_lock.release()
-
-        elif received_msg.get_message_token("TYPE") == "BROKER_NEIGHBORS_RESPONSE":
+        elif received_msg.get_token("TYPE") == "BROKER_NEIGHBORS_RESPONSE":
             # BROKER_NEIGHBORS_RESPONSE has a list of broker neighbors from another broker
             logger.info("BROKER_NEIGHBORS_RESPONSE message received from " + str(sender_addr))
-            broker_neighbors_lock.acquire()
 
-            # information about the responder broker
-            responder_broker_id = received_msg.get_message_token("BROKER_ID")
-            responder_broker_address = received_msg.get_message_token("BROKER_ADDRESS")
-            responder_broker_port = received_msg.get_message_token("BROKER_PORT")
-            responder_neighbors_list = received_msg.get_message_token("BROKER_NEIGHBORS")
-
-            # add responder broker if not already in the broker neighbour table
-
-            searched_neighbour = broker_neighbors.search_entry(responder_broker_id)
-
-            if searched_neighbour is None:
-                neighbor = BrokerNeighborInfo()
-                neighbor.set_broker_neighbour_id(responder_broker_id)
-                neighbor.set_broker_neighbour_address(responder_broker_address)
-                neighbor.set_broker_neighbour_port(responder_broker_port)
-                neighbor.set_broker_neighbour_online(True)
-                broker_neighbors.add_entry(neighbor)
-            else:
-                searched_neighbour.set_broker_neighbour_online(True)
-
-            # insert neighbours in broker neighbours table
-            received_neighbour_list = json.loads(responder_neighbors_list)
-            for entry in received_neighbour_list:
-                s_b_n = broker_neighbors.search_entry(entry.get("BROKER_ID"))
-                if s_b_n is None:
-                    neighbor = BrokerNeighborInfo()
-                    neighbor.set_broker_neighbour_id(entry.get("BROKER_ID"))
-                    neighbor.set_broker_neighbour_address(entry.get("BROKER_ADDRESS"))
-                    neighbor.set_broker_neighbour_port(entry.get("BROKER_PORT"))
-                    neighbor.set_broker_neighbour_online(True)
-                    broker_neighbors.add_entry(neighbor)
-                else:
-                    s_b_n.set_broker_neighbour_online(True)
-
-            broker_neighbors_lock.release()
+            process_broker_neighbors_response(received_msg)
 
     else:
         # if the message is not well-formed, send a NACK message
@@ -407,7 +157,7 @@ def main():
         received_raw_data, sender_addr = broker_sock.recvfrom(1024)
         logger.info("received message from " + str(sender_addr))
 
-        Thread(target=service_task,
+        Thread(target=message_received_service_task,
                args=[received_raw_data, sender_addr, broker_sock, broker_sock_lock, this_broker_id, this_broker_address,
                      this_broker_port]).start()
 

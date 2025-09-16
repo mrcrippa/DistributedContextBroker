@@ -264,7 +264,7 @@ class ReceivedMessage(object):
     def is_well_formed(self) -> bool:
         return self._well_formed
 
-    def get_message_token(self, key: str):
+    def get_token(self, key: str):
         if key is not None and self._message_tokens.get(key):
             return self._message_tokens.get(key)
         else:
