@@ -2,7 +2,8 @@ import json
 import time
 
 from global_data import broker_neighbors
-from tables.context_info import ContextInfo
+from tables.context_info_table import ContextInfo
+from tables.subscription_table import Subscription
 
 
 # utility code for creating messages
@@ -66,26 +67,14 @@ def create_broker_neighbors_request_message_string(this_broker_id: str, this_bro
     return msg_string
 
 
-def create_broker_subscribe_message_string_no_forward(this_broker_id: str, this_broker_address: str,
-                                           this_broker_port: str, entity_id: str, entity_type: str, scope: str,
-                                           sub_addr: str, sub_port: str, duration: str, max_hops: str, checked_brokers:list) -> str:
+def create_broker_subscribe_message_string(this_broker_id: str, this_broker_address: str,
+                                           this_broker_port: str, sub : Subscription, max_hops: str, checked_brokers:list) -> str:
     """returns a BROKER_SUBSCRIBE message string - JSON"""
     msg_string = json.dumps({"TYPE": "BROKER_SUBSCRIBE", "TIMESTAMP": str(int(round(
         time.time() * 1000))), "BROKER_ID": this_broker_id, "BROKER_ADDRESS": this_broker_address,
-                             "BROKER_PORT": this_broker_port, "ENTITY_ID": entity_id, "ENTITY_TYPE": entity_type,
-                             "SCOPE": scope, "SUBSCRIBER_ADDRESS": sub_addr, "SUBSCRIBER_PORT": sub_port,
-                             "DURATION": duration, "MAXIMUM_HOPS": max_hops, "FORWARD": False, "CHECKED_BROKERS": checked_brokers})
-    return msg_string
-
-def create_broker_subscribe_message_string_with_forward(this_broker_id: str, this_broker_address: str,
-                                           this_broker_port: str, entity_id: str, entity_type: str, scope: str,
-                                           sub_addr: str, sub_port: str, duration: str, max_hops: str, checked_brokers:list) -> str:
-    """returns a BROKER_SUBSCRIBE message string - JSON"""
-    msg_string = json.dumps({"TYPE": "BROKER_SUBSCRIBE", "TIMESTAMP": str(int(round(
-        time.time() * 1000))), "BROKER_ID": this_broker_id, "BROKER_ADDRESS": this_broker_address,
-                             "BROKER_PORT": this_broker_port, "ENTITY_ID": entity_id, "ENTITY_TYPE": entity_type,
-                             "SCOPE": scope, "SUBSCRIBER_ADDRESS": sub_addr, "SUBSCRIBER_PORT": sub_port,
-                             "DURATION": duration, "MAXIMUM_HOPS": max_hops, "FORWARD": True, "CHECKED_BROKERS": checked_brokers})
+                             "BROKER_PORT": this_broker_port, "ENTITY_ID": sub.get_entity_id(), "ENTITY_TYPE": sub.get_entity_type(),
+                             "SCOPE": sub.get_scope(), "SUBSCRIBER_ADDRESS": sub.get_subscriber_address(), "SUBSCRIBER_PORT": sub.get_subscriber_port(),
+                             "DURATION": sub.get_duration(), "MAXIMUM_HOPS": max_hops, "CHECKED_BROKERS": checked_brokers})
     return msg_string
 
 

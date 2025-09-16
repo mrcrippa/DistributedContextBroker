@@ -3,7 +3,7 @@ import socket
 import threading
 
 from global_data import *
-from tables.broker_neighbor_info import BrokerNeighborInfo
+from tables.broker_neighbor_table import BrokerNeighborInfo
 from utils.message_creator import create_broker_neighbors_request_message_string, \
     create_broker_neighbors_response_message_string
 from utils.received_message import ReceivedMessage

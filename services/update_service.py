@@ -3,7 +3,8 @@ import threading
 import time
 
 from global_data import *
-from tables.context_info import ContextInfo
+from tables.context_info_table import ContextInfo
+
 from utils.message_creator import create_context_response_message_string, create_ack_message_string
 from utils.received_message import ReceivedMessage
 

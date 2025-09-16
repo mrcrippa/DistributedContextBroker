@@ -3,9 +3,9 @@ import threading
 
 from global_data import sub_table_lock, sub_table, sub_timer_threads_lock, sub_timer_threads, logger, ctx_table, \
     ctx_table_lock, broker_neighbors_lock, broker_neighbors
-from tables.subscription import Subscription
+from tables.subscription_table import Subscription
 from utils.message_creator import create_ack_message_string, create_context_response_message_string, \
-    create_broker_subscribe_message_string_no_forward, create_broker_subscribe_message_string_with_forward
+    create_broker_subscribe_message_string
 from utils.received_message import ReceivedMessage
 
 
@@ -27,8 +27,7 @@ def sub_timer_thread(entry_id: str):
 
 
 def process_subscription(rcv_msg: ReceivedMessage, sender_addr: tuple, this_broker_id: str, this_broker_address: str,
-                         this_broker_port: str, broker_sock: socket.socket, broker_sock_lock: threading.Lock,
-                         broker_subscribe: bool):
+                         this_broker_port: str, broker_sock: socket.socket, broker_sock_lock: threading.Lock):
     """adds a subscription to the subscription table, received message was already verified and it's well-formed"""
 
     # check if there is already data in the context info table matching the subscription
@@ -38,16 +37,16 @@ def process_subscription(rcv_msg: ReceivedMessage, sender_addr: tuple, this_brok
                                               rcv_msg.get_token("SCOPE"))
     ctx_table_lock.release()
 
-    if current_ctx_info is not None:
+    # create subscription object
+    sub = Subscription()
+    sub.set_entity_id(rcv_msg.get_token("ENTITY_ID"))
+    sub.set_entity_type(rcv_msg.get_token("ENTITY_TYPE"))
+    sub.set_scope(rcv_msg.get_token("SCOPE"))
+    sub.set_subscriber_address(rcv_msg.get_token("SUBSCRIBER_ADDRESS"))
+    sub.set_subscriber_port(rcv_msg.get_token("SUBSCRIBER_PORT"))
+    sub.set_duration(rcv_msg.get_token("DURATION"))
 
-        # create subscription object
-        sub = Subscription()
-        sub.set_entity_id(rcv_msg.get_token("ENTITY_ID"))
-        sub.set_entity_type(rcv_msg.get_token("ENTITY_TYPE"))
-        sub.set_scope(rcv_msg.get_token("SCOPE"))
-        sub.set_subscriber_address(rcv_msg.get_token("SUBSCRIBER_ADDRESS"))
-        sub.set_subscriber_port(rcv_msg.get_token("SUBSCRIBER_PORT"))
-        sub.set_duration(rcv_msg.get_token("DURATION"))
+    if current_ctx_info is not None:
 
         sub_table_lock.acquire()
         # remove any subscription already there, since this will replace it
@@ -83,70 +82,36 @@ def process_subscription(rcv_msg: ReceivedMessage, sender_addr: tuple, this_brok
         broker_sock.sendto(str.encode(create_context_response_message_string(current_ctx_info)),
                            (sub.get_subscriber_address(), sub.get_subscriber_port()))
         broker_sock_lock.release()
-
     else:
 
         checked_brokers = [this_broker_id]
+        max_hops = 2
 
-        if rcv_msg.get_token("MAX_HOPS") is not None:
-            max_hops = int(rcv_msg.get_token("MAX_HOPS")) - 1
-        else:
-            max_hops = 2
-
-        if broker_subscribe and max_hops > 0:
+        if rcv_msg.get_token("MAX_HOPS") is not None and rcv_msg.get_token("CHECKED_BROKERS") is not None:
             checked_brokers.append(rcv_msg.get_token("CHECKED_BROKERS"))
+            max_hops = int(rcv_msg.get_token("MAX_HOPS")) - 1
 
-        msg_no_forward = create_broker_subscribe_message_string_no_forward(this_broker_id,
-                                                                           this_broker_address,
-                                                                           this_broker_port,
-                                                                           rcv_msg.get_token(
-                                                                               "ENTITY_ID"),
-                                                                           rcv_msg.get_token(
-                                                                               "ENTITY_TYPE"),
-                                                                           rcv_msg.get_token(
-                                                                               "SCOPE"),
-                                                                           rcv_msg.get_token(
-                                                                               "SUBSCRIBER_ADDRESS"),
-                                                                           rcv_msg.get_token(
-                                                                               "SUBSCRIBER_PORT"),
-                                                                           rcv_msg.get_token(
-                                                                               "DURATION"),
-                                                                           str(max_hops),
-                                                                           checked_brokers
-                                                                           )
+        if max_hops > 0:
+            broker_neighbors_lock.acquire()
+            small_flood = broker_neighbors.get_small_flooding_list(checked_brokers)
+            broker_neighbors_lock.release()
 
-        msg_forward = create_broker_subscribe_message_string_with_forward(this_broker_id, this_broker_address,
-                                                                          this_broker_port,
-                                                                          rcv_msg.get_token(
-                                                                              "ENTITY_ID"),
-                                                                          rcv_msg.get_token(
-                                                                              "ENTITY_TYPE"),
-                                                                          rcv_msg.get_token(
-                                                                              "SCOPE"),
-                                                                          rcv_msg.get_token(
-                                                                              "SUBSCRIBER_ADDRESS"),
-                                                                          rcv_msg.get_token(
-                                                                              "SUBSCRIBER_PORT"),
-                                                                          rcv_msg.get_token(
-                                                                              "DURATION"),
-                                                                          str(max_hops), checked_brokers
-                                                                          )
-
-        broker_neighbors_lock.acquire()
-        small_flood = broker_neighbors.get_small_flooding_list(checked_brokers)
-        broker_neighbors_lock.release()
-
-        broker_sock_lock.acquire()
-        if small_flood:
-            broker_sock.sendto(str.encode(msg_forward),
-                               (small_flood[0].get_broker_neighbour_address(),
-                                int(small_flood[0].get_broker_neighbour_port())))
+            broker_sock_lock.acquire()
+            if small_flood:
+                broker_sock.sendto(str.encode(
+                    create_broker_subscribe_message_string(this_broker_id, this_broker_address, this_broker_port,
+                                                           sub, str(max_hops),
+                                                           checked_brokers)),
+                                   (small_flood[0].get_broker_neighbour_address(),
+                                    int(small_flood[0].get_broker_neighbour_port())))
             small_flood.pop(0)
 
-        while small_flood:
-            broker_sock.sendto(str.encode(msg_no_forward),
-                               ((small_flood[0].get_broker_neighbour_address(),
-                                 int(small_flood[0].get_broker_neighbour_port()))))
-            small_flood.pop(0)
+            while small_flood:
+                broker_sock.sendto(str.encode(
+                    create_broker_subscribe_message_string(this_broker_id, this_broker_address, this_broker_port, sub,
+                                                           "0", checked_brokers)),
+                                   ((small_flood[0].get_broker_neighbour_address(),
+                                     int(small_flood[0].get_broker_neighbour_port()))))
+                small_flood.pop(0)
 
-        broker_sock_lock.release()
+            broker_sock_lock.release()

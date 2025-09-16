@@ -2,21 +2,11 @@ import json
 import logging
 import time
 
+from global_data import is_string_valid_int_bigger_than_zero
+
 # set with the valid types of messages the broker will receive
 message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_RESPONSE",
                     "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE", "BROKER_SUBSCRIBE"}
-
-
-def check_if_string_is_valid_integer_bigger_than_zero(value: str) -> bool:
-    """check if a string is a valid integer bigger than zero"""
-    result = False
-    try:
-        s = int(value)
-        if s > 0:
-            result = True
-    except ValueError:
-        result = False
-    return result
 
 
 class ReceivedMessage(object):
@@ -44,7 +34,7 @@ class ReceivedMessage(object):
             if self._message_tokens.get("TYPE") and self._message_tokens.get("TIMESTAMP"):
                 # check if type is a valid one, and if the timestamp is correct
                 if self._message_tokens.get(
-                        "TYPE") in message_type_set and check_if_string_is_valid_integer_bigger_than_zero(
+                        "TYPE") in message_type_set and is_string_valid_int_bigger_than_zero(
                     self._message_tokens.get("TIMESTAMP")):
 
                     self._message_type = self._message_tokens.get("TYPE")
@@ -55,8 +45,6 @@ class ReceivedMessage(object):
                         self._well_formed = self.is_sub_message_well_formed()
                     elif self._message_tokens.get("TYPE") == "UPDATE":
                         self._well_formed = self.is_update_message_well_formed()
-                    # elif self._message_tokens.get("TYPE") == "CONTEXT_REQUEST":
-                    #  self._well_formed = self.is_context_request_message_well_formed()
                     elif self._message_tokens.get("TYPE") == "BROKER_NEIGHBORS_REQUEST":
                         self._well_formed = self.is_broker_neighbors_request_message_well_formed()
                     elif self._message_tokens.get("TYPE") == "BROKER_NEIGHBORS_RESPONSE":
@@ -84,7 +72,7 @@ class ReceivedMessage(object):
         elif self._message_tokens.get("REASON") is None:
             well_formed = False
         elif self._message_tokens.get(
-                "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+                "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("BROKER_PORT")):
             well_formed = False
 
@@ -104,7 +92,7 @@ class ReceivedMessage(object):
         elif self._message_tokens.get("REASON") is None:
             well_formed = False
         elif self._message_tokens.get(
-                "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+                "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("BROKER_PORT")):
             well_formed = False
 
@@ -118,7 +106,7 @@ class ReceivedMessage(object):
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
             well_formed = False
         elif self._message_tokens.get(
-                "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+                "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("BROKER_PORT")):
             well_formed = False
 
@@ -131,10 +119,11 @@ class ReceivedMessage(object):
             well_formed = False
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
             well_formed = False
-        elif self._message_tokens.get("BROKER_NEIGHBORS") is None or type(self._message_tokens.get("BROKER_NEIGHBORS")).__name__ != "list":
+        elif self._message_tokens.get("BROKER_NEIGHBORS") is None or type(
+                self._message_tokens.get("BROKER_NEIGHBORS")).__name__ != "list":
             well_formed = False
         elif self._message_tokens.get(
-                "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+                "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("BROKER_PORT")):
             well_formed = False
 
@@ -154,7 +143,7 @@ class ReceivedMessage(object):
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
             well_formed = False
         elif self._message_tokens.get(
-                "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+                "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("BROKER_PORT")):
             well_formed = False
 
@@ -173,10 +162,10 @@ class ReceivedMessage(object):
         elif self._message_tokens.get("SUBSCRIBER_ADDRESS") is None:
             well_formed = False
         elif self._message_tokens.get(
-                "SUBSCRIBER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+                "SUBSCRIBER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("SUBSCRIBER_PORT")):
             well_formed = False
-        elif self._message_tokens.get("DURATION") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+        elif self._message_tokens.get("DURATION") is None or not is_string_valid_int_bigger_than_zero(
                 self._message_tokens.get("DURATION")):
             well_formed = False
 
@@ -192,7 +181,7 @@ class ReceivedMessage(object):
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
             well_formed = False
         elif self._message_tokens.get(
-                "BROKER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+                "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("BROKER_PORT")):
             well_formed = False
         elif self._message_tokens.get("ENTITY_ID") is None:
@@ -204,18 +193,20 @@ class ReceivedMessage(object):
         elif self._message_tokens.get("SUBSCRIBER_ADDRESS") is None:
             well_formed = False
         elif self._message_tokens.get(
-                "SUBSCRIBER_PORT") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+                "SUBSCRIBER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("SUBSCRIBER_PORT")):
             well_formed = False
-        elif self._message_tokens.get("DURATION") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+        elif self._message_tokens.get("DURATION") is None or not is_string_valid_int_bigger_than_zero(
                 self._message_tokens.get("DURATION")):
             well_formed = False
-        elif self._message_tokens.get("MAXIMUM_HOPS") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+        elif self._message_tokens.get("MAXIMUM_HOPS") is None or not is_string_valid_int_bigger_than_zero(
                 self._message_tokens.get("MAXIMUM_HOPS")):
             well_formed = False
-        elif self._message_tokens.get("FORWARD") is None or type(self._message_tokens.get("FORWARD")).__name__ != "bool":
+        elif self._message_tokens.get("FORWARD") is None or type(
+                self._message_tokens.get("FORWARD")).__name__ != "bool":
             well_formed = False
-        elif self._message_tokens.get("CHECKED_BROKERS") is None or type(self._message_tokens.get("CHECKED_BROKERS")).__name__ != "list":
+        elif self._message_tokens.get("CHECKED_BROKERS") is None or type(
+                self._message_tokens.get("CHECKED_BROKERS")).__name__ != "list":
             well_formed = False
 
         return well_formed
@@ -235,10 +226,10 @@ class ReceivedMessage(object):
         elif self._message_tokens.get("DATA") is None:
             well_formed = False
         elif self._message_tokens.get(
-                "VALIDITY_BEGIN") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+                "VALIDITY_BEGIN") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("VALIDITY_BEGIN")):
             well_formed = False
-        elif self._message_tokens.get("VALIDITY_END") is None or not check_if_string_is_valid_integer_bigger_than_zero(
+        elif self._message_tokens.get("VALIDITY_END") is None or not is_string_valid_int_bigger_than_zero(
                 self._message_tokens.get("VALIDITY_END")):
             well_formed = False
         else:
