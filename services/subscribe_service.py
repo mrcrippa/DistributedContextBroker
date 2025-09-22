@@ -26,8 +26,8 @@ def sub_timer_thread(entry_id: str):
     logger.info("sub_timer_threads : " + str(sub_timer_threads))
 
 
-def process_subscription(rcv_msg: ReceivedMessage, sender_addr: tuple, this_broker_id: str, this_broker_address: str,
-                         this_broker_port: str, broker_sock: socket.socket, broker_sock_lock: threading.Lock):
+def process_subscription(rcv_msg: ReceivedMessage, sender_addr: tuple, this_broker_info: dict,
+                         broker_sock: socket.socket, broker_sock_lock: threading.Lock):
     """adds a subscription to the subscription table, received message was already verified and it's well-formed"""
 
     # check if there is already data in the context info table matching the subscription
@@ -73,18 +73,17 @@ def process_subscription(rcv_msg: ReceivedMessage, sender_addr: tuple, this_brok
 
         broker_sock_lock.acquire()
         # notify the subscriber that the subscription was successfully done, sending an ACK message
-        broker_sock.sendto(str.encode(create_ack_message_string(this_broker_id, this_broker_address,
-                                                                this_broker_port, "SUBSCRIBE", str(sender_addr),
+        broker_sock.sendto(str.encode(create_ack_message_string(this_broker_info, "SUBSCRIBE", str(sender_addr),
                                                                 "Consumer subscribed to [ " + sub.get_entity_id() + " , " + sub.get_entity_type() + " , " + sub.get_scope() + " ]")),
                            (sub.get_subscriber_address(), sub.get_subscriber_port()))
 
         # if there is data, then send it to the subscriber
-        broker_sock.sendto(str.encode(create_context_response_message_string(current_ctx_info)),
+        broker_sock.sendto(str.encode(create_context_response_message_string(this_broker_info, current_ctx_info)),
                            (sub.get_subscriber_address(), sub.get_subscriber_port()))
         broker_sock_lock.release()
     else:
 
-        checked_brokers = [this_broker_id]
+        checked_brokers = [this_broker_info["id"]]
         max_hops = 2
 
         if rcv_msg.get_token("MAX_HOPS") is not None and rcv_msg.get_token("CHECKED_BROKERS") is not None:
@@ -99,19 +98,19 @@ def process_subscription(rcv_msg: ReceivedMessage, sender_addr: tuple, this_brok
             broker_sock_lock.acquire()
             if small_flood:
                 broker_sock.sendto(str.encode(
-                    create_broker_subscribe_message_string(this_broker_id, this_broker_address, this_broker_port,
+                    create_broker_subscribe_message_string(this_broker_info,
                                                            sub, str(max_hops),
                                                            checked_brokers)),
-                                   (small_flood[0].get_broker_neighbour_address(),
-                                    int(small_flood[0].get_broker_neighbour_port())))
+                    (small_flood[0].get_broker_neighbour_address(),
+                     int(small_flood[0].get_broker_neighbour_port())))
             small_flood.pop(0)
 
             while small_flood:
                 broker_sock.sendto(str.encode(
-                    create_broker_subscribe_message_string(this_broker_id, this_broker_address, this_broker_port, sub,
+                    create_broker_subscribe_message_string(this_broker_info, sub,
                                                            "0", checked_brokers)),
-                                   ((small_flood[0].get_broker_neighbour_address(),
-                                     int(small_flood[0].get_broker_neighbour_port()))))
+                    ((small_flood[0].get_broker_neighbour_address(),
+                      int(small_flood[0].get_broker_neighbour_port()))))
                 small_flood.pop(0)
 
             broker_sock_lock.release()

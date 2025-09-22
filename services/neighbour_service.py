@@ -9,12 +9,11 @@ from utils.message_creator import create_broker_neighbors_request_message_string
 from utils.received_message import ReceivedMessage
 
 
-def neighbour_broker_live_check(broker_sock: socket.socket, broker_sock_lock: threading.Lock, this_broker_id: str,
-                                this_broker_address: str, this_broker_port: str):
+def neighbour_broker_live_check(broker_sock: socket.socket, broker_sock_lock: threading.Lock, this_broker_info: dict):
     # checking if any of your neighbours is offline, by requesting their list of neighbours
     logger.info("broker ping")
 
-    msg = create_broker_neighbors_request_message_string(this_broker_id, this_broker_address, this_broker_port)
+    msg = create_broker_neighbors_request_message_string(this_broker_info)
 
     broker_neighbors_lock.acquire()
     for entry in broker_neighbors.get_table():
@@ -26,7 +25,7 @@ def neighbour_broker_live_check(broker_sock: socket.socket, broker_sock_lock: th
     broker_neighbors_lock.release()
 
     threading.Timer(15, neighbour_broker_live_check,
-                    [broker_sock, broker_sock_lock, this_broker_id, this_broker_address, this_broker_port]).start()
+                    [broker_sock, broker_sock_lock, this_broker_info]).start()
 
 
 def process_broker_neighbors_response(rcv_msg: ReceivedMessage):
@@ -67,8 +66,7 @@ def process_broker_neighbors_response(rcv_msg: ReceivedMessage):
     broker_neighbors_lock.release()
 
 
-def process_broker_neighbors_request(rcv_msg: ReceivedMessage, this_broker_id: str, this_broker_address: str,
-                                     this_broker_port: str, broker_sock: socket.socket,
+def process_broker_neighbors_request(rcv_msg: ReceivedMessage, this_broker_info: dict, broker_sock: socket.socket,
                                      broker_sock_lock: threading.Lock):
     # information about the requester broker
     requester_broker_id = rcv_msg.get_token("BROKER_ID")
@@ -77,8 +75,7 @@ def process_broker_neighbors_request(rcv_msg: ReceivedMessage, this_broker_id: s
 
     broker_sock_lock.acquire()
     broker_sock.sendto(
-        str.encode(create_broker_neighbors_response_message_string(this_broker_id, this_broker_address,
-                                                                   this_broker_port)),
+        str.encode(create_broker_neighbors_response_message_string(this_broker_info)),
         (requester_broker_address, int(requester_broker_port)))
     broker_sock_lock.release()
 

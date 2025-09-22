@@ -21,10 +21,12 @@ def main():
     config = configparser.ConfigParser()
     config.read('broker_config_file')
 
+    this_broker_info = {}
+
     if config['config_values']['broker_id'] == '0':
-        this_broker_id = str(uuid.uuid4()).replace('-', '')[:8]
+        this_broker_info["id"] = str(uuid.uuid4()).replace('-', '')[:8]
     else:
-        this_broker_id = config['config_values']['broker_id']
+        this_broker_info["id"] = config['config_values']['broker_id']
 
     # set up logging environment
     log_queue = queue.Queue(-1)
@@ -36,7 +38,7 @@ def main():
     formatter = logging.Formatter('%(asctime)s - %(threadName)s - %(name)s - %(levelname)s - %(message)s')
     console_handler.setFormatter(formatter)
 
-    file_handler = logging.FileHandler(config['config_values']['log_file_name'] + "_" + this_broker_id + ".log")
+    file_handler = logging.FileHandler(config['config_values']['log_file_name'] + "_" + this_broker_info["id"] + ".log")
     file_handler.setFormatter(formatter)
 
     listener = QueueListener(log_queue, console_handler, file_handler)
@@ -60,8 +62,8 @@ def main():
             sys.exit()
         socket_connected = True
 
-    this_broker_address = config['config_values']['host_broker_ip']
-    this_broker_port = str(port_broker_nr)
+    this_broker_info["address"] = config['config_values']['host_broker_ip']
+    this_broker_info["port"] = str(port_broker_nr)
 
     # lock used to coordinate among various threads, so only one can access the socket at a time
     broker_sock_lock = threading.Lock()
@@ -84,18 +86,17 @@ def main():
 
     # start the broker ping regular timer
     threading.Timer(1, neighbour_broker_live_check,
-                    [broker_sock, broker_sock_lock, this_broker_id, this_broker_address, this_broker_port]).start()
+                    [broker_sock, broker_sock_lock, this_broker_info]).start()
 
     while True:
         # main loop
         # wait for messages, when one is received, create a service_task thread
-        print(this_broker_id + " - Waiting for messages...")
+        print(this_broker_info["id"] + " - Waiting for messages...")
         received_raw_data, sender_addr = broker_sock.recvfrom(1024)
         logger.info("received message from " + str(sender_addr))
 
         Thread(target=message_received_service_task,
-               args=[received_raw_data, sender_addr, broker_sock, broker_sock_lock, this_broker_id, this_broker_address,
-                     this_broker_port]).start()
+               args=[received_raw_data, sender_addr, broker_sock, broker_sock_lock, this_broker_info]).start()
 
 
 main()

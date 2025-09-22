@@ -26,8 +26,8 @@ def ctx_timer_thread(entry_id: str):
     logger.info("ctx_timer_threads : " + str(ctx_timer_threads))
 
 
-def process_update_message(rcv_msg: ReceivedMessage, sender_addr: tuple, this_broker_id: str, this_broker_address: str,
-                           this_broker_port: str, broker_sock: socket.socket, broker_sock_lock: threading.Lock):
+def process_update_message(rcv_msg: ReceivedMessage, sender_addr: tuple, this_broker_info: dict,
+                           broker_sock: socket.socket, broker_sock_lock: threading.Lock):
     """adds an entry to the context info table, received message was already verified and it's well-formed"""
 
     # create ContextInfo object
@@ -66,14 +66,13 @@ def process_update_message(rcv_msg: ReceivedMessage, sender_addr: tuple, this_br
 
     # send an ACK message confirming the update
     broker_sock_lock.acquire()
-    broker_sock.sendto(str.encode(create_ack_message_string(this_broker_id, this_broker_address,
-                                                            this_broker_port, "UPDATE", str(sender_addr),
+    broker_sock.sendto(str.encode(create_ack_message_string(this_broker_info, "UPDATE", str(sender_addr),
                                                             "Update to [ " + ctx_data.get_entity_id() + " , " + ctx_data.get_entity_type() + " , " + ctx_data.get_scope() + " ]")),
                        sender_addr)
 
     # if there are any subscriptions to this data, then notify all subscribers
     for sub in sub_table.search_entry(ctx_data.get_entity_id(), ctx_data.get_entity_type(),
                                       ctx_data.get_scope()):
-        broker_sock.sendto(str.encode(create_context_response_message_string(ctx_data)),
+        broker_sock.sendto(str.encode(create_context_response_message_string(this_broker_info, ctx_data)),
                            (sub.get_subscriber_address(), sub.get_subscriber_port()))
     broker_sock_lock.release()
