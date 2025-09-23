@@ -63,7 +63,7 @@ def process_subscription(rcv_msg: ReceivedMessage, sender_addr: tuple, this_brok
             del sub_timer_threads[sub.get_object_id()]
 
         # create new timer thread
-        sub_timer_threads[sub.get_object_id()] = threading.Timer(sub.get_duration() / 1000, sub_timer_thread,
+        sub_timer_threads[sub.get_object_id()] = threading.Timer(float(sub.get_duration()), sub_timer_thread,
                                                                  [sub.get_object_id()])
         sub_timer_threads[sub.get_object_id()].start()
         sub_timer_threads_lock.release()

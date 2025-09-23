@@ -1,8 +1,9 @@
 import json
 import random
-import time
 
 from global_data import is_string_valid_int_bigger_than_zero
+from utils.time_utils import current_broker_time
+
 
 class BrokerNeighborInfo(object):
     """
@@ -19,14 +20,13 @@ class BrokerNeighborInfo(object):
     def set_broker_neighbour_online(self, status: bool):
         self._broker_neighbour_online = status
         if status:
-            self._broker_neighbour_last_online_timestamp = int(round(time.time() * 1000))
+            self._broker_neighbour_last_online_timestamp = current_broker_time()
         else:
             self._broker_neighbour_last_online_timestamp = 0
 
     def is_broker_neighbour_potentially_offline(self) -> bool:
         if self._broker_neighbour_online:
-            current_timestamp = int(round(time.time() * 1000))
-            time_elapsed = current_timestamp - self._broker_neighbour_last_online_timestamp
+            time_elapsed = current_broker_time() - self._broker_neighbour_last_online_timestamp
             if 15000 < time_elapsed < 30000:
                 return True
             else:

@@ -1,9 +1,9 @@
+from global_data import *
 from services.neighbour_service import process_broker_neighbors_request, process_broker_neighbors_response
 from services.subscribe_service import process_subscription
 from services.update_service import process_update_message
 from utils.message_creator import create_ping_message_string, create_nack_message_string
 from utils.received_message import ReceivedMessage
-from global_data import *
 
 
 def message_received_service_task(received_raw_data, sender_addr, broker_sock, broker_sock_lock, this_broker_info):

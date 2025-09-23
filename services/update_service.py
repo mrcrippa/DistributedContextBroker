@@ -1,12 +1,11 @@
 import socket
 import threading
-import time
 
 from global_data import *
 from tables.context_info_table import ContextInfo
-
 from utils.message_creator import create_context_response_message_string, create_ack_message_string
 from utils.received_message import ReceivedMessage
+from utils.time_utils import current_broker_time
 
 
 def ctx_timer_thread(entry_id: str):
@@ -55,7 +54,7 @@ def process_update_message(rcv_msg: ReceivedMessage, sender_addr: tuple, this_br
         del ctx_timer_threads[ctx_data.get_object_id()]
 
     # create new timer thread
-    interval_timer = (ctx_data.get_validity_end() - int(round(time.time() * 1000))) / 1000
+    interval_timer = (ctx_data.get_validity_end() - current_broker_time()) / 1000
     ctx_timer_threads[ctx_data.get_object_id()] = threading.Timer(interval_timer, ctx_timer_thread,
                                                                   [ctx_data.get_object_id()])
     ctx_timer_threads[ctx_data.get_object_id()].start()

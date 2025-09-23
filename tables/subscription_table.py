@@ -12,7 +12,7 @@ class Subscription(object):
         self._scope = ""
         self._subscriber_address = ""
         self._subscriber_port = 0
-        "for how many milliseconds should this subscription be valid"
+        "for how many seconds should this subscription be valid"
         self._duration = 0
 
     def get_object_id(self) -> str:
@@ -56,11 +56,11 @@ class Subscription(object):
             self._subscriber_port = int(subscriber_port)
 
     def get_duration(self) -> int:
-        """for how many milliseconds should this subscription be valid"""
+        """for how many seconds should this subscription be valid"""
         return self._duration
 
     def set_duration(self, duration: str):
-        """for how many milliseconds should this subscription be valid"""
+        """for how many seconds should this subscription be valid"""
         if duration is not None and is_string_valid_int_bigger_than_zero(duration):
             self._duration = int(duration)
 

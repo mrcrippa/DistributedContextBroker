@@ -1,6 +1,5 @@
-import time
-
 from global_data import is_string_valid_int_bigger_than_zero
+from utils.time_utils import current_broker_time
 
 
 class ContextInfo(object):
@@ -14,7 +13,6 @@ class ContextInfo(object):
         self._data = ""
         "timestamps for the beginning and the end of the time period when the context info is valid"
         "time expressed as milliseconds UNIX time"
-        "use the result from round(time.time() * 1000)"
         self._validity_begin = 0
         self._validity_end = 0
 
@@ -58,21 +56,21 @@ class ContextInfo(object):
             self._data = data
 
     def get_validity_begin(self) -> int:
-        """value for the beginning of the time period when the context info is valid, time expressed as milliseconds UNIX time (round(time.time() * 1000))"""
+        """value for the beginning of the time period when the context info is valid, time expressed as milliseconds UNIX time """
         return self._validity_begin
 
     def set_validity_begin(self, validity_begin: str):
-        """timestamp for the beginning of the time period when the context info is valid, time expressed as milliseconds UNIX time (round(time.time() * 1000))"""
+        """timestamp for the beginning of the time period when the context info is valid, time expressed as milliseconds UNIX time """
         if validity_begin is not None and is_string_valid_int_bigger_than_zero(validity_begin):
             self._validity_begin = int(validity_begin)
 
     def get_validity_end(self) -> int:
-        """value for the end of the time period when the context info is valid, time expressed as milliseconds UNIX time (round(time.time() * 1000))"""
+        """value for the end of the time period when the context info is valid, time expressed as milliseconds UNIX time """
         return self._validity_end
 
     def set_validity_end(self, validity_end: str):
-        """timestamp for the end of the time period when the context info is valid, time expressed as milliseconds UNIX time (round(time.time() * 1000))"""
-        if validity_end is not None and check_if_string_is_valid_integer_bigger_than_zero(validity_end):
+        """timestamp for the end of the time period when the context info is valid, time expressed as milliseconds UNIX time """
+        if validity_end is not None and is_string_valid_int_bigger_than_zero(validity_end):
             self._validity_end = int(validity_end)
 
     def print(self) -> str:
@@ -110,7 +108,7 @@ class ContextInfoTable(object):
 
                 begin_tag = int(self._table[key_identifier].get_validity_begin())
                 end_tag = int(self._table[key_identifier].get_validity_end())
-                current_time = int(round(time.time() * 1000))
+                current_time = current_broker_time()
 
                 currently_valid = begin_tag <= current_time <= end_tag
                 if currently_valid:

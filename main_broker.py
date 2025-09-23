@@ -12,8 +12,9 @@ from global_data import *
 from services.message_received_service import message_received_service_task
 from services.neighbour_service import neighbour_broker_live_check
 from tables.broker_neighbor_table import BrokerNeighborInfo
-from utils.received_message import *
 from utils.message_creator import *
+from utils.received_message import *
+from utils.time_utils import *
 
 
 def main():
@@ -84,14 +85,18 @@ def main():
 
     broker_neighbors_lock.release()
 
-    # start the broker ping regular timer
+    # start the neighbour live check regular timer
     threading.Timer(1, neighbour_broker_live_check,
                     [broker_sock, broker_sock_lock, this_broker_info]).start()
+
+    # start the time correction with ntp regular timer
+    threading.Timer(10, time_correction_with_ntp,
+                    []).start()
 
     while True:
         # main loop
         # wait for messages, when one is received, create a service_task thread
-        print(this_broker_info["id"] + " - Waiting for messages...")
+        # print(this_broker_info["id"] + " - Waiting for messages...")
         received_raw_data, sender_addr = broker_sock.recvfrom(1024)
         logger.info("received message from " + str(sender_addr))
 
