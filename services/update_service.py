@@ -5,7 +5,6 @@ from global_data import *
 from tables.context_info_table import ContextInfo
 from utils.message_creator import create_context_response_message_string, create_ack_message_string
 from utils.received_message import ReceivedMessage
-from utils.time_utils import current_broker_time
 
 
 def ctx_timer_thread(entry_id: str):
@@ -21,11 +20,11 @@ def ctx_timer_thread(entry_id: str):
         del ctx_timer_threads[entry_id]
     ctx_timer_threads_lock.release()
 
-    logger.info("ctx_table : " + ctx_table.print())
-    logger.info("ctx_timer_threads : " + str(ctx_timer_threads))
+    broker_logger.info("ctx_table : " + ctx_table.print())
+    broker_logger.info("ctx_timer_threads : " + str(ctx_timer_threads))
 
 
-def process_update_message(rcv_msg: ReceivedMessage, sender_addr: tuple, this_broker_info: dict,
+def process_update_message(rcv_msg: ReceivedMessage, sender_address: tuple, this_broker_info: dict,
                            broker_sock: socket.socket, broker_sock_lock: threading.Lock):
     """adds an entry to the context info table, received message was already verified and it's well-formed"""
 
@@ -54,20 +53,20 @@ def process_update_message(rcv_msg: ReceivedMessage, sender_addr: tuple, this_br
         del ctx_timer_threads[ctx_data.get_object_id()]
 
     # create new timer thread
-    interval_timer = (ctx_data.get_validity_end() - current_broker_time()) / 1000
+    interval_timer = (ctx_data.get_validity_end() - broker_clock.current_broker_time()) / 1000
     ctx_timer_threads[ctx_data.get_object_id()] = threading.Timer(interval_timer, ctx_timer_thread,
                                                                   [ctx_data.get_object_id()])
     ctx_timer_threads[ctx_data.get_object_id()].start()
     ctx_timer_threads_lock.release()
 
-    logger.info("ctx_table : " + ctx_table.print())
-    logger.info("ctx_timer_threads : " + str(ctx_timer_threads))
+    broker_logger.info("ctx_table : " + ctx_table.print())
+    broker_logger.info("ctx_timer_threads : " + str(ctx_timer_threads))
 
     # send an ACK message confirming the update
     broker_sock_lock.acquire()
-    broker_sock.sendto(str.encode(create_ack_message_string(this_broker_info, "UPDATE", str(sender_addr),
+    broker_sock.sendto(str.encode(create_ack_message_string(this_broker_info, "UPDATE", str(sender_address),
                                                             "Update to [ " + ctx_data.get_entity_id() + " , " + ctx_data.get_entity_type() + " , " + ctx_data.get_scope() + " ]")),
-                       sender_addr)
+                       sender_address)
 
     # if there are any subscriptions to this data, then notify all subscribers
     for sub in sub_table.search_entry(ctx_data.get_entity_id(), ctx_data.get_entity_type(),

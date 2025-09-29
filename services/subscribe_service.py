@@ -1,7 +1,7 @@
 import socket
 import threading
 
-from global_data import sub_table_lock, sub_table, sub_timer_threads_lock, sub_timer_threads, logger, ctx_table, \
+from global_data import sub_table_lock, sub_table, sub_timer_threads_lock, sub_timer_threads, broker_logger, ctx_table, \
     ctx_table_lock, broker_neighbors_lock, broker_neighbors
 from tables.subscription_table import Subscription
 from utils.message_creator import create_ack_message_string, create_context_response_message_string, \
@@ -22,11 +22,11 @@ def sub_timer_thread(entry_id: str):
         del sub_timer_threads[entry_id]
     sub_timer_threads_lock.release()
 
-    logger.info("sub_table : " + sub_table.print())
-    logger.info("sub_timer_threads : " + str(sub_timer_threads))
+    broker_logger.info("sub_table : " + sub_table.print())
+    broker_logger.info("sub_timer_threads : " + str(sub_timer_threads))
 
 
-def process_subscription(rcv_msg: ReceivedMessage, sender_addr: tuple, this_broker_info: dict,
+def process_subscription(rcv_msg: ReceivedMessage, sender_address: tuple, this_broker_info: dict,
                          broker_sock: socket.socket, broker_sock_lock: threading.Lock):
     """adds a subscription to the subscription table, received message was already verified and it's well-formed"""
 
@@ -68,12 +68,12 @@ def process_subscription(rcv_msg: ReceivedMessage, sender_addr: tuple, this_brok
         sub_timer_threads[sub.get_object_id()].start()
         sub_timer_threads_lock.release()
 
-        logger.info("sub_table : " + sub_table.print())
-        logger.info("sub_timer_threads : " + str(sub_timer_threads))
+        broker_logger.info("sub_table : " + sub_table.print())
+        broker_logger.info("sub_timer_threads : " + str(sub_timer_threads))
 
         broker_sock_lock.acquire()
         # notify the subscriber that the subscription was successfully done, sending an ACK message
-        broker_sock.sendto(str.encode(create_ack_message_string(this_broker_info, "SUBSCRIBE", str(sender_addr),
+        broker_sock.sendto(str.encode(create_ack_message_string(this_broker_info, "SUBSCRIBE", str(sender_address),
                                                                 "Consumer subscribed to [ " + sub.get_entity_id() + " , " + sub.get_entity_type() + " , " + sub.get_scope() + " ]")),
                            (sub.get_subscriber_address(), sub.get_subscriber_port()))
 

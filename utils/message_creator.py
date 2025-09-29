@@ -1,9 +1,9 @@
 import json
 
-from global_data import broker_neighbors
+from global_data import broker_neighbors, broker_clock
 from tables.context_info_table import ContextInfo
 from tables.subscription_table import Subscription
-from utils.time_utils import current_broker_time
+
 
 
 # utility code for creating messages
@@ -14,7 +14,7 @@ def create_nack_message_string(this_broker_info: dict, operation: str,
                                requester_address: str, reason: str) -> str:
     """returns a NACK message string - JSON"""
     dict_as_string = json.dumps(
-        {"TYPE": "NACK", "TIMESTAMP": current_broker_time(), "BROKER_ID": this_broker_info["id"],
+        {"TYPE": "NACK", "TIMESTAMP": broker_clock.current_broker_time(), "BROKER_ID": this_broker_info["id"],
          "BROKER_ADDRESS": this_broker_info["address"],
          "BROKER_PORT": this_broker_info["port"], "OPERATION": operation,
          "REQUESTER": requester_address, "REASON": reason})
@@ -26,7 +26,7 @@ def create_ack_message_string(this_broker_info: dict, operation: str,
                               requester_address: str, reason: str) -> str:
     """returns an ACK message string - JSON"""
     dict_as_string = json.dumps(
-        {"TYPE": "ACK", "TIMESTAMP": current_broker_time(), "BROKER_ID": this_broker_info["id"],
+        {"TYPE": "ACK", "TIMESTAMP": broker_clock.current_broker_time(), "BROKER_ID": this_broker_info["id"],
          "BROKER_ADDRESS": this_broker_info["address"],
          "BROKER_PORT": this_broker_info["port"], "OPERATION": operation,
          "REQUESTER": requester_address, "REASON": reason})
@@ -37,7 +37,7 @@ def create_ack_message_string(this_broker_info: dict, operation: str,
 def create_ping_message_string(this_broker_info: dict) -> str:
     """returns a PING message string - JSON"""
     dict_as_string = json.dumps(
-        {"TYPE": "PING", "TIMESTAMP": current_broker_time(), "BROKER_ID": this_broker_info["id"],
+        {"TYPE": "PING", "TIMESTAMP": broker_clock.current_broker_time(), "BROKER_ID": this_broker_info["id"],
          "BROKER_ADDRESS": this_broker_info["address"],
          "BROKER_PORT": this_broker_info["port"]})
 
@@ -48,7 +48,7 @@ def create_context_response_message_string(this_broker_info: dict,
                                            ctx_info: ContextInfo) -> str:
     """returns a RESPONSE message string - JSON"""
     dict_as_string = json.dumps(
-        {"TYPE": "CONTEXT_RESPONSE", "TIMESTAMP": current_broker_time(), "BROKER_ID": this_broker_info["id"],
+        {"TYPE": "CONTEXT_RESPONSE", "TIMESTAMP": broker_clock.current_broker_time(), "BROKER_ID": this_broker_info["id"],
          "BROKER_ADDRESS": this_broker_info["address"],
          "BROKER_PORT": this_broker_info["port"], "PROVIDER_ID": ctx_info.get_provider_id(),
          "ENTITY_ID": ctx_info.get_entity_id(),
@@ -61,7 +61,7 @@ def create_context_response_message_string(this_broker_info: dict,
 def create_broker_neighbors_request_message_string(this_broker_info: dict) -> str:
     """returns a BROKER_NEIGHBORS_REQUEST message string - JSON"""
     msg_string = json.dumps(
-        {"TYPE": "BROKER_NEIGHBORS_REQUEST", "TIMESTAMP": current_broker_time(), "BROKER_ID": this_broker_info["id"],
+        {"TYPE": "BROKER_NEIGHBORS_REQUEST", "TIMESTAMP": broker_clock.current_broker_time(), "BROKER_ID": this_broker_info["id"],
          "BROKER_ADDRESS": this_broker_info["address"],
          "BROKER_PORT": this_broker_info["port"]})
     return msg_string
@@ -71,7 +71,7 @@ def create_broker_subscribe_message_string(this_broker_info: dict, sub: Subscrip
                                            checked_brokers: list) -> str:
     """returns a BROKER_SUBSCRIBE message string - JSON"""
     msg_string = json.dumps(
-        {"TYPE": "BROKER_SUBSCRIBE", "TIMESTAMP": current_broker_time(), "BROKER_ID": this_broker_info["id"],
+        {"TYPE": "BROKER_SUBSCRIBE", "TIMESTAMP": broker_clock.current_broker_time(), "BROKER_ID": this_broker_info["id"],
          "BROKER_ADDRESS": this_broker_info["address"],
          "BROKER_PORT": this_broker_info["port"], "ENTITY_ID": sub.get_entity_id(),
          "ENTITY_TYPE": sub.get_entity_type(),
@@ -85,7 +85,7 @@ def create_broker_subscribe_message_string(this_broker_info: dict, sub: Subscrip
 def create_broker_neighbors_response_message_string(this_broker_info: dict) -> str:
     """returns a BROKER_NEIGHBORS_RESPONSE message string - JSON"""
     msg_string = json.dumps(
-        {"TYPE": "BROKER_NEIGHBORS_RESPONSE", "TIMESTAMP": current_broker_time(), "BROKER_ID": this_broker_info["id"],
+        {"TYPE": "BROKER_NEIGHBORS_RESPONSE", "TIMESTAMP": broker_clock.current_broker_time(), "BROKER_ID": this_broker_info["id"],
          "BROKER_ADDRESS": this_broker_info["address"],
          "BROKER_PORT": this_broker_info["port"],
          "BROKER_NEIGHBORS": broker_neighbors.print_table()})

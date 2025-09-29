@@ -1,4 +1,4 @@
-from global_data import is_string_valid_int_bigger_than_zero
+from utils.misc_utils import is_string_valid_int_bigger_than_zero
 
 
 class Subscription(object):

@@ -1,8 +1,8 @@
 import json
 import logging
 
-from global_data import is_string_valid_int_bigger_than_zero
-from utils.time_utils import current_broker_time
+from global_data import broker_clock
+from utils.misc_utils import is_string_valid_int_bigger_than_zero
 
 # set with the valid types of messages the broker will receive
 message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_RESPONSE",
@@ -240,7 +240,7 @@ class ReceivedMessage(object):
             # any request for the data will only return when the data is valid
             begin_tag = int(self._message_tokens.get("VALIDITY_BEGIN"))
             end_tag = int(self._message_tokens.get("VALIDITY_END"))
-            current_time = current_broker_time()
+            current_time = broker_clock.current_broker_time()
 
             # begin comes before end
             end_after_begin = begin_tag < end_tag

@@ -11,7 +11,7 @@ from utils.received_message import ReceivedMessage
 
 def neighbour_broker_live_check(broker_sock: socket.socket, broker_sock_lock: threading.Lock, this_broker_info: dict):
     # checking if any of your neighbours is offline, by requesting their list of neighbours
-    logger.info("broker ping")
+    broker_logger.info("neighbour_broker_live_check")
 
     msg = create_broker_neighbors_request_message_string(this_broker_info)
 
@@ -19,8 +19,11 @@ def neighbour_broker_live_check(broker_sock: socket.socket, broker_sock_lock: th
     for entry in broker_neighbors.get_table():
         if entry.is_broker_neighbour_potentially_offline():
             broker_sock_lock.acquire()
-            broker_sock.sendto(str.encode(msg),
-                               (entry.get_broker_neighbour_address(), entry.get_broker_neighbour_port()))
+            try:
+                broker_sock.sendto(str.encode(msg),
+                                   (entry.get_broker_neighbour_address(), entry.get_broker_neighbour_port()))
+            except socket.error as e:
+                broker_logger.error(e)
             broker_sock_lock.release()
     broker_neighbors_lock.release()
 

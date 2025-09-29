@@ -3,7 +3,6 @@ import queue
 import random
 import socket
 import sys
-import threading
 import uuid
 from logging.handlers import QueueHandler, QueueListener
 from threading import Thread
@@ -14,7 +13,7 @@ from services.neighbour_service import neighbour_broker_live_check
 from tables.broker_neighbor_table import BrokerNeighborInfo
 from utils.message_creator import *
 from utils.received_message import *
-from utils.time_utils import *
+from utils.broker_clock import *
 
 
 def main():
@@ -32,8 +31,8 @@ def main():
     # set up logging environment
     log_queue = queue.Queue(-1)
     queue_handler = QueueHandler(log_queue)
-    logger.addHandler(queue_handler)
-    logger.setLevel(logging.INFO)
+    broker_logger.addHandler(queue_handler)
+    broker_logger.setLevel(logging.INFO)
 
     console_handler = logging.StreamHandler()
     formatter = logging.Formatter('%(asctime)s - %(threadName)s - %(name)s - %(levelname)s - %(message)s')
@@ -57,7 +56,7 @@ def main():
         try:
             broker_sock.bind((config['config_values']['host_broker_ip'], port_broker_nr))
         except socket.error as error_msg:
-            logger.critical("Binding Broker socket failed. Message : " + str(error_msg))
+            broker_logger.critical("Binding Broker socket failed. Message : " + str(error_msg))
             if config['config_values']['port_broker_nr'] == "0":
                 continue
             sys.exit()
@@ -90,18 +89,17 @@ def main():
                     [broker_sock, broker_sock_lock, this_broker_info]).start()
 
     # start the time correction with ntp regular timer
-    threading.Timer(10, time_correction_with_ntp,
-                    []).start()
+    broker_clock.time_correction_with_ntp()
 
     while True:
         # main loop
         # wait for messages, when one is received, create a service_task thread
         # print(this_broker_info["id"] + " - Waiting for messages...")
-        received_raw_data, sender_addr = broker_sock.recvfrom(1024)
-        logger.info("received message from " + str(sender_addr))
+        received_raw_data, sender_address = broker_sock.recvfrom(1024)
+        broker_logger.info("received message from " + str(sender_address))
 
         Thread(target=message_received_service_task,
-               args=[received_raw_data, sender_addr, broker_sock, broker_sock_lock, this_broker_info]).start()
+               args=[received_raw_data, sender_address, broker_sock, broker_sock_lock, this_broker_info]).start()
 
 
 main()

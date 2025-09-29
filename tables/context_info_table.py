@@ -1,5 +1,5 @@
-from global_data import is_string_valid_int_bigger_than_zero
-from utils.time_utils import current_broker_time
+from global_data import broker_clock
+from utils.misc_utils import is_string_valid_int_bigger_than_zero
 
 
 class ContextInfo(object):
@@ -108,7 +108,7 @@ class ContextInfoTable(object):
 
                 begin_tag = int(self._table[key_identifier].get_validity_begin())
                 end_tag = int(self._table[key_identifier].get_validity_end())
-                current_time = current_broker_time()
+                current_time = broker_clock.current_broker_time()
 
                 currently_valid = begin_tag <= current_time <= end_tag
                 if currently_valid:
