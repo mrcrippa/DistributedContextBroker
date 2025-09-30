@@ -1,3 +1,5 @@
+import threading
+
 from utils.misc_utils import is_string_valid_int_bigger_than_zero
 
 
@@ -81,28 +83,37 @@ class SubscriptionTable(object):
 
     def __init__(self):
         self._table = {}
+        self._table_lock = threading.Lock()
 
     def add_entry(self, sub: Subscription):
         if sub is not None:
+            self._table_lock.acquire()
             self._table[sub.get_object_id()] = sub
+            self._table_lock.release()
 
     def remove_entry(self, entry_id: str):
         """removes an entry from the table, if the entry doesn't exist, then nothing happens"""
+        self._table_lock.acquire()
         if entry_id is not None and entry_id in self._table:
             del self._table[entry_id]
+        self._table_lock.release()
 
     def search_entry(self, entity_id: str, entity_type: str, scope: str) -> list:
         """searches for any matching subscription from the table, if one or more exist, returns a list of subscriptions
                  if not entry exist, then returns an empty list"""
         result_list = []
         if entity_id is not None and entity_type is not None and scope is not None:
+            self._table_lock.acquire()
             for sub in self._table.values():
                 if sub.get_entity_id() == entity_id and sub.get_entity_type() == entity_type and sub.get_scope() == scope:
                     result_list.append(sub)
+            self._table_lock.release()
         return result_list
 
     def print(self) -> str:
         result = ""
+        self._table_lock.acquire()
         for sub in self._table.values():
             result += '\n' + sub.print() + " ||"
+        self._table_lock.release()
         return result

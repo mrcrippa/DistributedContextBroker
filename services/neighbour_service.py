@@ -1,37 +1,29 @@
 import json
-import socket
 import threading
 
 from global_data import *
 from tables.broker_neighbor_table import BrokerNeighborInfo
 from utils.message_creator import create_broker_neighbors_request_message_string, \
     create_broker_neighbors_response_message_string
-from utils.received_message import ReceivedMessage
+from utils.message_sender import send_message
+from utils.parsed_message import ParsedMessage
 
 
-def neighbour_broker_live_check(broker_sock: socket.socket, broker_sock_lock: threading.Lock, this_broker_info: dict):
+def neighbour_broker_live_check(this_broker_info: dict):
     # checking if any of your neighbours is offline, by requesting their list of neighbours
     broker_logger.info("neighbour_broker_live_check")
 
-    msg = create_broker_neighbors_request_message_string(this_broker_info)
-
-    broker_neighbors_lock.acquire()
-    for entry in broker_neighbors.get_table():
-        if entry.is_broker_neighbour_potentially_offline():
-            broker_sock_lock.acquire()
-            try:
-                broker_sock.sendto(str.encode(msg),
-                                   (entry.get_broker_neighbour_address(), entry.get_broker_neighbour_port()))
-            except socket.error as e:
-                broker_logger.error(e)
-            broker_sock_lock.release()
-    broker_neighbors_lock.release()
+    # retrieves
+    for addr, port in broker_neighbors.check_table_for_potentially_offline_brokers():
+        send_message(create_broker_neighbors_request_message_string(this_broker_info),
+                     this_broker_info["address"],
+                     (addr, port))
 
     threading.Timer(15, neighbour_broker_live_check,
-                    [broker_sock, broker_sock_lock, this_broker_info]).start()
+                    [this_broker_info]).start()
 
 
-def process_broker_neighbors_response(rcv_msg: ReceivedMessage):
+def process_broker_neighbors_response(rcv_msg: ParsedMessage):
     # information about the responder broker
     responder_broker_id = rcv_msg.get_token("BROKER_ID")
     responder_broker_address = rcv_msg.get_token("BROKER_ADDRESS")
@@ -39,7 +31,7 @@ def process_broker_neighbors_response(rcv_msg: ReceivedMessage):
     responder_neighbors_list = rcv_msg.get_token("BROKER_NEIGHBORS")
 
     # add responder broker if not already in the broker neighbour table
-    broker_neighbors_lock.acquire()
+
     searched_neighbour = broker_neighbors.search_entry(responder_broker_id)
 
     if searched_neighbour is None:
@@ -66,23 +58,16 @@ def process_broker_neighbors_response(rcv_msg: ReceivedMessage):
         else:
             s_b_n.set_broker_neighbour_online(True)
 
-    broker_neighbors_lock.release()
 
-
-def process_broker_neighbors_request(rcv_msg: ReceivedMessage, this_broker_info: dict, broker_sock: socket.socket,
-                                     broker_sock_lock: threading.Lock):
+def process_broker_neighbors_request(rcv_msg: ParsedMessage, this_broker_info: dict):
     # information about the requester broker
     requester_broker_id = rcv_msg.get_token("BROKER_ID")
     requester_broker_address = rcv_msg.get_token("BROKER_ADDRESS")
     requester_broker_port = rcv_msg.get_token("BROKER_PORT")
 
-    broker_sock_lock.acquire()
-    broker_sock.sendto(
-        str.encode(create_broker_neighbors_response_message_string(this_broker_info)),
-        (requester_broker_address, int(requester_broker_port)))
-    broker_sock_lock.release()
+    send_message(create_broker_neighbors_response_message_string(this_broker_info), this_broker_info["address"],
+                 (requester_broker_address, int(requester_broker_port)))
 
-    broker_neighbors_lock.acquire()
     searched_neighbour = broker_neighbors.search_entry(requester_broker_id)
 
     if searched_neighbour is None:
@@ -94,5 +79,3 @@ def process_broker_neighbors_request(rcv_msg: ReceivedMessage, this_broker_info:
         broker_neighbors.add_entry(neighbor)
     else:
         searched_neighbour.set_broker_neighbour_online(True)
-
-    broker_neighbors_lock.release()

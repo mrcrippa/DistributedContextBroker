@@ -1,3 +1,5 @@
+import threading
+
 from global_data import broker_clock
 from utils.misc_utils import is_string_valid_int_bigger_than_zero
 
@@ -89,21 +91,27 @@ class ContextInfoTable(object):
 
     def __init__(self):
         self._table = {}
+        self._table_lock = threading.Lock()
 
     def add_entry(self, context_info_object: ContextInfo):
         if context_info_object is not None:
+            self._table_lock.acquire()
             self._table[context_info_object.get_object_id()] = context_info_object
+            self._table_lock.release()
 
     def remove_entry(self, entry_id: str):
         """removes an entry from the table, if the entry doesn't exist, then nothing happens"""
+        self._table_lock.acquire()
         if entry_id is not None and entry_id in self._table:
             del self._table[entry_id]
+        self._table_lock.release()
 
     def search_entry(self, entity_id: str, entity_type: str, scope: str) -> ContextInfo | None:
         """searches for an entry from the table, if entry exist, returns the entry
          if entry doesn't exist, then returns None"""
         if entity_id is not None and entity_type is not None and scope is not None:
             key_identifier = str(hash(entity_id + entity_type + scope))
+            self._table_lock.acquire()
             if key_identifier in self._table:
 
                 begin_tag = int(self._table[key_identifier].get_validity_begin())
@@ -113,10 +121,13 @@ class ContextInfoTable(object):
                 currently_valid = begin_tag <= current_time <= end_tag
                 if currently_valid:
                     return self._table[key_identifier]
+            self._table_lock.release()
         return None
 
     def print(self) -> str:
         result = ""
+        self._table_lock.acquire()
         for entry in self._table.values():
             result += '\n' + entry.print() + " ||"
+        self._table_lock.release()
         return result

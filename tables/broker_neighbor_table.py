@@ -1,9 +1,9 @@
 import json
 import random
+import threading
 
 from global_data import broker_clock
 from utils.misc_utils import is_string_valid_int_bigger_than_zero
-
 
 
 class BrokerNeighborInfo(object):
@@ -75,32 +75,44 @@ class BrokerNeighborTable(object):
 
     def __init__(self):
         self._table = {}
+        self._table_lock = threading.Lock()
 
     def set_entry_online(self, broker_neighbour_id: str):
         """ searches for and marks a neighbour as online, if the neighbour does not exist, nothing happens """
+        self._table_lock.acquire()
         if broker_neighbour_id is not None and broker_neighbour_id in self._table:
             self._table[broker_neighbour_id].set_broker_neighbour_online()
+        self._table_lock.release()
 
     def add_entry(self, neighbor: BrokerNeighborInfo):
         if neighbor is not None:
+            self._table_lock.acquire()
             self._table[neighbor.get_broker_neighbour_id()] = neighbor
+            self._table_lock.release()
 
     def remove_entry(self, broker_neighbour_id: str):
         """removes an entry from the table, if the entry doesn't exist, then nothing happens"""
+        self._table_lock.acquire()
         if broker_neighbour_id is not None and broker_neighbour_id in self._table:
             del self._table[broker_neighbour_id]
+        self._table_lock.release()
 
     def search_entry(self, broker_neighbour_id: str) -> BrokerNeighborInfo | None:
         """searches for any matching neighbor from the table"""
+        self._table_lock.acquire()
         if broker_neighbour_id is not None and broker_neighbour_id in self._table:
             return self._table[broker_neighbour_id]
+        self._table_lock.release()
         return None
 
-    def get_table(self) -> list:
+    def check_table_for_potentially_offline_brokers(self) -> list:
         """returns a list with all the entries in the table"""
         result = []
+        self._table_lock.acquire()
         for entry in self._table.values():
-            result.append(entry)
+            if entry.is_broker_neighbour_potentially_offline():
+                result.append((entry.get_broker_neighbour_address(), entry.get_broker_neighbour_port()))
+        self._table_lock.release()
         return result
 
     def get_small_flooding_list(self, checked_brokers: list) -> list:
@@ -114,17 +126,20 @@ class BrokerNeighborTable(object):
         for entry in checked_brokers:
             to_be_verified.remove(entry)
 
+        self._table_lock.acquire()
         while to_be_verified:
             selected = random.choice(to_be_verified)
             to_be_verified.remove(selected)
             if self._table[selected].is_broker_neighbour_online():
                 result.append(self._table[selected])
+        self._table_lock.release()
 
         return result
 
     def print_table(self) -> str:
         """returns the table as a JSON string"""
         temp_list = []
+        self._table_lock.acquire()
         for entry in self._table.values():
             if entry.is_broker_neighbour_potentially_offline():
                 continue
@@ -133,5 +148,6 @@ class BrokerNeighborTable(object):
                              "broker_address": entry.get_broker_neighbour_address(),
                              "broker_port": str(entry.get_broker_neighbour_port())}
                 temp_list.append(temp_dict)
+        self._table_lock.release()
 
         return json.dumps(temp_list)

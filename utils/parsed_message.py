@@ -9,7 +9,7 @@ message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_RESPO
                     "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE", "BROKER_SUBSCRIBE"}
 
 
-class ReceivedMessage(object):
+class ParsedMessage(object):
     """
     Class representing a message received by the Broker
     """
@@ -18,8 +18,6 @@ class ReceivedMessage(object):
 
         self._message_tokens = {}
         self._well_formed = False
-        self._message_type = ""
-        self._message_timestamp = 0
 
         # the message strings are in JSON
         # check if the message is valid JSON
@@ -28,229 +26,211 @@ class ReceivedMessage(object):
         except json.JSONDecodeError:
             logging.error("Message decode error")
 
-        # if the deserialization worked
-        if self._message_tokens:
-            # all message need at least the type and timestamp
-            if self._message_tokens.get("TYPE") and self._message_tokens.get("TIMESTAMP"):
-                # check if type is a valid one, and if the timestamp is correct
-                if self._message_tokens.get(
-                        "TYPE") in message_type_set and is_string_valid_int_bigger_than_zero(
-                    self._message_tokens.get("TIMESTAMP")):
-
-                    self._message_type = self._message_tokens.get("TYPE")
-                    self._message_timestamp = self._message_tokens.get("TIMESTAMP")
-
-                    # verify the message further based on the type
-                    if self._message_tokens.get("TYPE") == "SUBSCRIBE":
-                        self._well_formed = self.is_sub_message_well_formed()
-                    elif self._message_tokens.get("TYPE") == "UPDATE":
-                        self._well_formed = self.is_update_message_well_formed()
-                    elif self._message_tokens.get("TYPE") == "BROKER_NEIGHBORS_REQUEST":
-                        self._well_formed = self.is_broker_neighbors_request_message_well_formed()
-                    elif self._message_tokens.get("TYPE") == "BROKER_NEIGHBORS_RESPONSE":
-                        self._well_formed = self.is_broker_neighbors_response_message_well_formed()
-                    elif self._message_tokens.get("TYPE") == "BROKER_SUBSCRIBE":
-                        self._well_formed = self.is_broker_subscribe_message_well_formed
-                    elif self._message_tokens.get("TYPE") == "PING":
-                        self._well_formed = self.is_ping_message_well_formed()
-                    elif self._message_tokens.get("TYPE") == "ACK":
-                        self._well_formed = self.is_ack_message_well_formed()
-                    elif self._message_tokens.get("TYPE") == "NACK":
-                        self._well_formed = self.is_nack_message_well_formed()
+        msg_type = self._message_tokens.get("TYPE")
+        # all message need at least the type
+        if msg_type is not None and msg_type in message_type_set:
+            # verify the message further based on the type
+            match msg_type:
+                case "ACK":
+                    self._well_formed = self.is_ack_message_well_formed()
+                case "NACK":
+                    self._well_formed = self.is_nack_message_well_formed()
+                case "PING":  #
+                    self._well_formed = self.is_ping_message_well_formed()
+                case "SUBSCRIBE":
+                    self._well_formed = self.is_sub_message_well_formed()
+                case "UPDATE":
+                    self._well_formed = self.is_update_message_well_formed()
+                case "BROKER_NEIGHBORS_REQUEST":
+                    self._well_formed = self.is_broker_neighbors_request_message_well_formed()
+                case "BROKER_NEIGHBORS_RESPONSE":
+                    self._well_formed = self.is_broker_neighbors_response_message_well_formed()
+                case "BROKER_SUBSCRIBE":
+                    self._well_formed = self.is_broker_subscribe_message_well_formed
 
     def is_ack_message_well_formed(self) -> bool:
         """check if an ACK message is well-formed"""
-        well_formed = True
         if self._message_tokens.get("BROKER_ID") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("OPERATION") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("REQUESTER") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("REASON") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get(
                 "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("BROKER_PORT")):
-            well_formed = False
+            return False
 
-        return well_formed
+        return True
 
     def is_nack_message_well_formed(self) -> bool:
         """check if a NACK message is well-formed"""
-        well_formed = True
         if self._message_tokens.get("BROKER_ID") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("OPERATION") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("REQUESTER") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("REASON") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get(
                 "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("BROKER_PORT")):
-            well_formed = False
+            return False
 
-        return well_formed
+        return True
 
     def is_ping_message_well_formed(self) -> bool:
         """check if a PING message is well-formed"""
-        well_formed = True
         if self._message_tokens.get("BROKER_ID") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
-            well_formed = False
+            return False
+        elif self._message_tokens.get("TIMESTAMP") is None or not is_string_valid_int_bigger_than_zero(
+                self._message_tokens.get("TIMESTAMP")):
+            return False
         elif self._message_tokens.get(
                 "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("BROKER_PORT")):
-            well_formed = False
+            return False
 
-        return well_formed
+        return True
 
     def is_broker_neighbors_response_message_well_formed(self) -> bool:
         """check if a BROKER_NEIGHBORS_RESPONSE message is well-formed"""
-        well_formed = True
         if self._message_tokens.get("BROKER_ID") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("BROKER_NEIGHBORS") is None or type(
                 self._message_tokens.get("BROKER_NEIGHBORS")).__name__ != "list":
-            well_formed = False
+            return False
         elif self._message_tokens.get(
                 "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("BROKER_PORT")):
-            well_formed = False
+            return False
 
-        if well_formed:
-            for neighbor in self._message_tokens.get("BROKER_NEIGHBORS"):
-                if neighbor.get("broker_id") is None or neighbor.get("broker_address") is None or neighbor.get(
-                        "broker_port") is None:
-                    well_formed = False
+        for neighbor in self._message_tokens.get("BROKER_NEIGHBORS"):
+            if neighbor.get("broker_id") is None or neighbor.get("broker_address") is None or neighbor.get(
+                    "broker_port") is None:
+                return False
 
-        return well_formed
+        return True
 
     def is_broker_neighbors_request_message_well_formed(self) -> bool:
         """check if a BROKER_NEIGHBORS_REQUEST message is well-formed"""
-        well_formed = True
         if self._message_tokens.get("BROKER_ID") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get(
                 "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("BROKER_PORT")):
-            well_formed = False
+            return False
 
-        return well_formed
+        return True
 
     def is_sub_message_well_formed(self) -> bool:
         """check if a SUBSCRIBE message is well-formed"""
-        well_formed = True
 
         if self._message_tokens.get("ENTITY_ID") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("ENTITY_TYPE") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("SCOPE") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("SUBSCRIBER_ADDRESS") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get(
                 "SUBSCRIBER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("SUBSCRIBER_PORT")):
-            well_formed = False
+            return False
         elif self._message_tokens.get("DURATION") is None or not is_string_valid_int_bigger_than_zero(
                 self._message_tokens.get("DURATION")):
-            well_formed = False
+            return False
 
-        return well_formed
+        return True
 
     @property
     def is_broker_subscribe_message_well_formed(self) -> bool:
         """check if a BROKER_SUBSCRIBE message is well-formed"""
-        well_formed = True
 
         if self._message_tokens.get("BROKER_ID") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get(
                 "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("BROKER_PORT")):
-            well_formed = False
+            return False
         elif self._message_tokens.get("ENTITY_ID") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("ENTITY_TYPE") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("SCOPE") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("SUBSCRIBER_ADDRESS") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get(
                 "SUBSCRIBER_PORT") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("SUBSCRIBER_PORT")):
-            well_formed = False
+            return False
         elif self._message_tokens.get("DURATION") is None or not is_string_valid_int_bigger_than_zero(
                 self._message_tokens.get("DURATION")):
-            well_formed = False
+            return False
         elif self._message_tokens.get("MAXIMUM_HOPS") is None or not is_string_valid_int_bigger_than_zero(
                 self._message_tokens.get("MAXIMUM_HOPS")):
-            well_formed = False
+            return False
         elif self._message_tokens.get("FORWARD") is None or type(
                 self._message_tokens.get("FORWARD")).__name__ != "bool":
-            well_formed = False
+            return False
         elif self._message_tokens.get("CHECKED_BROKERS") is None or type(
                 self._message_tokens.get("CHECKED_BROKERS")).__name__ != "list":
-            well_formed = False
+            return False
 
-        return well_formed
+        return True
 
     def is_update_message_well_formed(self) -> bool:
         """check if a UPDATE message is well-formed"""
-        well_formed = True
-
         if self._message_tokens.get("ENTITY_ID") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("ENTITY_TYPE") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("SCOPE") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("PROVIDER_ID") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get("DATA") is None:
-            well_formed = False
+            return False
         elif self._message_tokens.get(
                 "VALIDITY_BEGIN") is None or not is_string_valid_int_bigger_than_zero(
             self._message_tokens.get("VALIDITY_BEGIN")):
-            well_formed = False
+            return False
         elif self._message_tokens.get("VALIDITY_END") is None or not is_string_valid_int_bigger_than_zero(
                 self._message_tokens.get("VALIDITY_END")):
-            well_formed = False
-        else:
-            # checks if the validity timestamps are correct
-            #  there two valid situations:
-            #  the validity of the update begins before the current time and ends after the current time
-            #  the validity of the update begins and ends after the current time (in the future)
-            # any request for the data will only return when the data is valid
-            begin_tag = int(self._message_tokens.get("VALIDITY_BEGIN"))
-            end_tag = int(self._message_tokens.get("VALIDITY_END"))
-            current_time = broker_clock.current_broker_time()
+            return False
 
-            # begin comes before end
-            end_after_begin = begin_tag < end_tag
-            # end comes after the current time
-            end_after_current = current_time < end_tag
+        # checks if the validity timestamps are correct
+        #  there two valid situations:
+        #  the validity of the update begins before the current time and ends after the current time
+        #  the validity of the update begins and ends after the current time (in the future)
+        # any request for the data will only return when the data is valid
 
-            if not (end_after_begin and end_after_current):
-                well_formed = False
+        # checking if the validity begin tag refers to a timestamp that comes before the validity end timestamp
+        end_after_begin = int(self._message_tokens.get("VALIDITY_BEGIN")) < int(self._message_tokens.get("VALIDITY_END"))
+        # validity end should come after the current broker time
+        end_after_current = broker_clock.current_broker_time() < int(self._message_tokens.get("VALIDITY_END"))
 
-        return well_formed
+        if not (end_after_begin and end_after_current):
+            return False
+
+        return True
 
     def is_well_formed(self) -> bool:
         return self._well_formed

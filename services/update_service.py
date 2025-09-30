@@ -1,18 +1,16 @@
-import socket
 import threading
 
 from global_data import *
 from tables.context_info_table import ContextInfo
 from utils.message_creator import create_context_response_message_string, create_ack_message_string
-from utils.received_message import ReceivedMessage
+from utils.message_sender import send_message
+from utils.parsed_message import ParsedMessage
 
 
 def ctx_timer_thread(entry_id: str):
     """timer thread used to delete context table entries after their validity ends"""
     # delete entry in the context info table
-    ctx_table_lock.acquire()
     ctx_table.remove_entry(entry_id)
-    ctx_table_lock.release()
 
     # delete the timer thread associated with that entry
     ctx_timer_threads_lock.acquire()
@@ -24,8 +22,7 @@ def ctx_timer_thread(entry_id: str):
     broker_logger.info("ctx_timer_threads : " + str(ctx_timer_threads))
 
 
-def process_update_message(rcv_msg: ReceivedMessage, sender_address: tuple, this_broker_info: dict,
-                           broker_sock: socket.socket, broker_sock_lock: threading.Lock):
+def process_update_message(rcv_msg: ParsedMessage, sender_address: tuple, this_broker_info: dict):
     """adds an entry to the context info table, received message was already verified and it's well-formed"""
 
     # create ContextInfo object
@@ -38,13 +35,11 @@ def process_update_message(rcv_msg: ReceivedMessage, sender_address: tuple, this
     ctx_data.set_validity_end(rcv_msg.get_token("VALIDITY_END"))
     ctx_data.set_data(rcv_msg.get_token("DATA"))
 
-    ctx_table_lock.acquire()
     # remove any data already there, since this will replace it
     # if no data exists, then nothing happens
     ctx_table.remove_entry(ctx_data.get_object_id())
     # add new data
     ctx_table.add_entry(ctx_data)
-    ctx_table_lock.release()
 
     # remove any associated timer thread
     ctx_timer_threads_lock.acquire()
@@ -63,14 +58,12 @@ def process_update_message(rcv_msg: ReceivedMessage, sender_address: tuple, this
     broker_logger.info("ctx_timer_threads : " + str(ctx_timer_threads))
 
     # send an ACK message confirming the update
-    broker_sock_lock.acquire()
-    broker_sock.sendto(str.encode(create_ack_message_string(this_broker_info, "UPDATE", str(sender_address),
-                                                            "Update to [ " + ctx_data.get_entity_id() + " , " + ctx_data.get_entity_type() + " , " + ctx_data.get_scope() + " ]")),
-                       sender_address)
+    send_message(create_ack_message_string(this_broker_info, "UPDATE", str(sender_address),
+                                           "Successful update to [ " + ctx_data.get_entity_id() + " , " + ctx_data.get_entity_type() + " , " + ctx_data.get_scope() + " ]"),
+                 this_broker_info["address"], sender_address)
 
     # if there are any subscriptions to this data, then notify all subscribers
     for sub in sub_table.search_entry(ctx_data.get_entity_id(), ctx_data.get_entity_type(),
                                       ctx_data.get_scope()):
-        broker_sock.sendto(str.encode(create_context_response_message_string(this_broker_info, ctx_data)),
-                           (sub.get_subscriber_address(), sub.get_subscriber_port()))
-    broker_sock_lock.release()
+        send_message(create_context_response_message_string(this_broker_info, ctx_data), this_broker_info["address"],
+                     (sub.get_subscriber_address(), sub.get_subscriber_port()))

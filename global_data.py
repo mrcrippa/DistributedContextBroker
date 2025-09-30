@@ -16,7 +16,6 @@ broker_logger = logging.getLogger()
 # including the table, a dict with all the timer threads use for the table, and two related locks
 from tables.context_info_table import ContextInfoTable
 
-ctx_table_lock = Lock()
 ctx_table = ContextInfoTable()
 ctx_timer_threads_lock = Lock()
 ctx_timer_threads = {}
@@ -25,7 +24,6 @@ ctx_timer_threads = {}
 # including the table, a dict with all the timer threads use for the table, and two related locks
 from tables.subscription_table import SubscriptionTable
 
-sub_table_lock = Lock()
 sub_table = SubscriptionTable()
 sub_timer_threads_lock = Lock()
 sub_timer_threads = {}
@@ -34,5 +32,4 @@ sub_timer_threads = {}
 # each element is a dict with keys "broker_id","broker_address" and "broker_port"
 from tables.broker_neighbor_table import BrokerNeighborTable
 
-broker_neighbors_lock = Lock()
 broker_neighbors = BrokerNeighborTable()

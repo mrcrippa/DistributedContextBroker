@@ -12,7 +12,7 @@ from services.message_received_service import message_received_service_task
 from services.neighbour_service import neighbour_broker_live_check
 from tables.broker_neighbor_table import BrokerNeighborInfo
 from utils.message_creator import *
-from utils.received_message import *
+from utils.parsed_message import *
 from utils.broker_clock import *
 
 
@@ -65,14 +65,9 @@ def main():
     this_broker_info["address"] = config['config_values']['host_broker_ip']
     this_broker_info["port"] = str(port_broker_nr)
 
-    # lock used to coordinate among various threads, so only one can access the socket at a time
-    broker_sock_lock = threading.Lock()
-
     # get list of start neighbours
     print(config['config_values']['start_neighbours'])
     start_neighbours = json.loads(config['config_values']['start_neighbours'])
-
-    broker_neighbors_lock.acquire()
 
     for index in range(0, len(start_neighbours), 3):
         neighbor = BrokerNeighborInfo()
@@ -82,11 +77,9 @@ def main():
         neighbor.set_broker_neighbour_online(True)
         broker_neighbors.add_entry(neighbor)
 
-    broker_neighbors_lock.release()
-
     # start the neighbour live check regular timer
     threading.Timer(1, neighbour_broker_live_check,
-                    [broker_sock, broker_sock_lock, this_broker_info]).start()
+                    [this_broker_info]).start()
 
     # start the time correction with ntp regular timer
     broker_clock.time_correction_with_ntp()
@@ -99,7 +92,7 @@ def main():
         broker_logger.info("received message from " + str(sender_address))
 
         Thread(target=message_received_service_task,
-               args=[received_raw_data, sender_address, broker_sock, broker_sock_lock, this_broker_info]).start()
+               args=[received_raw_data, sender_address, this_broker_info]).start()
 
 
 main()
