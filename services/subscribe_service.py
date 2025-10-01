@@ -1,6 +1,4 @@
-import threading
-
-from global_data import sub_table, sub_timer_threads_lock, sub_timer_threads, broker_logger, ctx_table, \
+from global_data import sub_table, broker_logger, ctx_table, \
     broker_neighbors
 from tables.subscription_table import Subscription
 from utils.message_creator import create_ack_message_string, create_context_response_message_string, \
@@ -11,17 +9,8 @@ from utils.parsed_message import ParsedMessage
 
 def sub_timer_thread(entry_id: str):
     """timer thread used to delete subscriptions after their duration"""
-    # delete entry in the subscription table
     sub_table.remove_entry(entry_id)
-
-    # delete the timer thread associated with that subscription
-    sub_timer_threads_lock.acquire()
-    if entry_id is not None and entry_id in sub_timer_threads:
-        del sub_timer_threads[entry_id]
-    sub_timer_threads_lock.release()
-
     broker_logger.info("sub_table : " + sub_table.print())
-    broker_logger.info("sub_timer_threads : " + str(sub_timer_threads))
 
 
 def process_subscription(rcv_msg: ParsedMessage, this_broker_info: dict):
@@ -50,20 +39,7 @@ def process_subscription(rcv_msg: ParsedMessage, this_broker_info: dict):
         # add new subscription
         sub_table.add_entry(sub)
 
-        # remove any associated timer thread
-        sub_timer_threads_lock.acquire()
-        if sub.get_object_id() in sub_timer_threads:
-            sub_timer_threads[sub.get_object_id()].cancel()
-            del sub_timer_threads[sub.get_object_id()]
-
-        # create new timer thread
-        sub_timer_threads[sub.get_object_id()] = threading.Timer(float(sub.get_duration()), sub_timer_thread,
-                                                                 [sub.get_object_id()])
-        sub_timer_threads[sub.get_object_id()].start()
-        sub_timer_threads_lock.release()
-
         broker_logger.info("sub_table : " + sub_table.print())
-        broker_logger.info("sub_timer_threads : " + str(sub_timer_threads))
 
         # notify the subscriber that the subscription was successfully done, sending an ACK message
         send_message(create_ack_message_string(this_broker_info, "SUBSCRIBE",

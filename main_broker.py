@@ -66,7 +66,7 @@ def main():
     this_broker_info["port"] = str(port_broker_nr)
 
     # get list of start neighbours
-    print(config['config_values']['start_neighbours'])
+    # print(config['config_values']['start_neighbours'])
     start_neighbours = json.loads(config['config_values']['start_neighbours'])
 
     for index in range(0, len(start_neighbours), 3):
@@ -83,6 +83,21 @@ def main():
 
     # start the time correction with ntp regular timer
     broker_clock.time_correction_with_ntp()
+
+
+    neighbor = BrokerNeighborInfo()
+    neighbor.set_broker_neighbour_id("adklsfjklasdfjlasdfjlasökjdflasödfkjasölfj")
+    neighbor.set_broker_neighbour_address("asdflkjadfslökjadf")
+    neighbor.set_broker_neighbour_port("ladksjfdklsfjdklsfj")
+    neighbor.set_broker_neighbour_online(True)
+
+    big_list = {}
+
+    for i in range(5000):
+        big_list[i] = neighbor
+
+    print(sys.getsizeof(big_list))
+
 
     while True:
         # main loop

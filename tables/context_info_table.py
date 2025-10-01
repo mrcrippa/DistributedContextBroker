@@ -1,6 +1,7 @@
 import threading
 
-from global_data import broker_clock
+from global_data import *
+from services.update_service import ctx_timer_thread
 from utils.misc_utils import is_string_valid_int_bigger_than_zero
 
 
@@ -17,6 +18,8 @@ class ContextInfo(object):
         "time expressed as milliseconds UNIX time"
         self._validity_begin = 0
         self._validity_end = 0
+        "timer thread associated with this context info object, when the info is no longer valid, it will call this thread and delete itself"
+        self._timer_thread = None
 
     def get_object_id(self) -> str:
         """unique identifier for this object"""
@@ -75,6 +78,15 @@ class ContextInfo(object):
         if validity_end is not None and is_string_valid_int_bigger_than_zero(validity_end):
             self._validity_end = int(validity_end)
 
+    def activate_timer_thread(self):
+        valid_interval_time = (self.get_validity_end() - broker_clock.current_broker_time()) / 1000
+        self._timer_thread = threading.Timer(valid_interval_time, ctx_timer_thread,
+                                             [self.get_object_id()])
+        self._timer_thread.start()
+
+    def deactivate_timer_thread(self):
+        self._timer_thread.cancel()
+
     def print(self) -> str:
         contents = {"CONTEXT_INFO_ID": self.get_object_id(), "PROVIDER_ID": self.get_provider_id(),
                     "ENTITY_ID": self.get_entity_id(), "ENTITY_TYPE": self.get_entity_type(), "SCOPE": self.get_scope(),
@@ -97,12 +109,14 @@ class ContextInfoTable(object):
         if context_info_object is not None:
             self._table_lock.acquire()
             self._table[context_info_object.get_object_id()] = context_info_object
+            self._table[context_info_object.get_object_id()].activate_timer_thread()
             self._table_lock.release()
 
     def remove_entry(self, entry_id: str):
         """removes an entry from the table, if the entry doesn't exist, then nothing happens"""
         self._table_lock.acquire()
         if entry_id is not None and entry_id in self._table:
+            self._table[entry_id].deactivate_timer_thread()
             del self._table[entry_id]
         self._table_lock.release()
 

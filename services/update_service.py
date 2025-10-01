@@ -1,5 +1,3 @@
-import threading
-
 from global_data import *
 from tables.context_info_table import ContextInfo
 from utils.message_creator import create_context_response_message_string, create_ack_message_string
@@ -9,17 +7,8 @@ from utils.parsed_message import ParsedMessage
 
 def ctx_timer_thread(entry_id: str):
     """timer thread used to delete context table entries after their validity ends"""
-    # delete entry in the context info table
     ctx_table.remove_entry(entry_id)
-
-    # delete the timer thread associated with that entry
-    ctx_timer_threads_lock.acquire()
-    if entry_id is not None and entry_id in ctx_timer_threads:
-        del ctx_timer_threads[entry_id]
-    ctx_timer_threads_lock.release()
-
     broker_logger.info("ctx_table : " + ctx_table.print())
-    broker_logger.info("ctx_timer_threads : " + str(ctx_timer_threads))
 
 
 def process_update_message(rcv_msg: ParsedMessage, sender_address: tuple, this_broker_info: dict):
@@ -41,21 +30,7 @@ def process_update_message(rcv_msg: ParsedMessage, sender_address: tuple, this_b
     # add new data
     ctx_table.add_entry(ctx_data)
 
-    # remove any associated timer thread
-    ctx_timer_threads_lock.acquire()
-    if ctx_data.get_object_id() in ctx_timer_threads:
-        ctx_timer_threads[ctx_data.get_object_id()].cancel()
-        del ctx_timer_threads[ctx_data.get_object_id()]
-
-    # create new timer thread
-    interval_timer = (ctx_data.get_validity_end() - broker_clock.current_broker_time()) / 1000
-    ctx_timer_threads[ctx_data.get_object_id()] = threading.Timer(interval_timer, ctx_timer_thread,
-                                                                  [ctx_data.get_object_id()])
-    ctx_timer_threads[ctx_data.get_object_id()].start()
-    ctx_timer_threads_lock.release()
-
     broker_logger.info("ctx_table : " + ctx_table.print())
-    broker_logger.info("ctx_timer_threads : " + str(ctx_timer_threads))
 
     # send an ACK message confirming the update
     send_message(create_ack_message_string(this_broker_info, "UPDATE", str(sender_address),

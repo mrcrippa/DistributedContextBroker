@@ -14,30 +14,28 @@ def message_received_service_task(received_raw_data: str, sender_address: tuple,
     if parsed_msg.is_well_formed():
         broker_logger.info("well formed message: " + parsed_msg.print_message() + " from " + str(sender_address))
 
-        if parsed_msg.get_token("TYPE") == "PING":
-            # PING messages get a ping message in return
-            broker_logger.info("PING message received from " + str(sender_address))
-            send_message(create_ping_message_string(this_broker_info), this_broker_info["address"], sender_address)
-
-        elif parsed_msg.get_token("TYPE") == "SUBSCRIBE" or parsed_msg.get_token("TYPE") == "BROKER_SUBSCRIBE":
-            broker_logger.info("SUBSCRIBE message received from " + str(sender_address))
-            process_subscription(parsed_msg, this_broker_info)
-
-        elif parsed_msg.get_token("TYPE") == "UPDATE":
-            # context provider update the context table with its data
-            broker_logger.info("UPDATE message received from " + str(sender_address))
-            process_update_message(parsed_msg, sender_address, this_broker_info)
-
-        elif parsed_msg.get_token("TYPE") == "BROKER_NEIGHBORS_REQUEST":
-            # BROKER_NEIGHBORS_REQUEST messages get the list of broker neighbors in return
-            broker_logger.info("BROKER_NEIGHBORS_REQUEST message received from " + str(sender_address))
-            process_broker_neighbors_request(parsed_msg, this_broker_info)
-
-        elif parsed_msg.get_token("TYPE") == "BROKER_NEIGHBORS_RESPONSE":
-            # BROKER_NEIGHBORS_RESPONSE has a list of broker neighbors from another broker
-            broker_logger.info("BROKER_NEIGHBORS_RESPONSE message received from " + str(sender_address))
-            process_broker_neighbors_response(parsed_msg)
-
+        match parsed_msg.get_token("TYPE"):
+            case "PING":
+                broker_logger.info("PING message received from " + str(sender_address))
+                send_message(create_ping_message_string(this_broker_info), this_broker_info["address"], sender_address)
+            case "SUBSCRIBE":
+                broker_logger.info("SUBSCRIBE message received from " + str(sender_address))
+                process_subscription(parsed_msg, this_broker_info)
+            case "BROKER_SUBSCRIBE":
+                broker_logger.info("BROKER_SUBSCRIBE message received from " + str(sender_address))
+                process_subscription(parsed_msg, this_broker_info)
+            case "UPDATE":
+                # context provider update the context table with its data
+                broker_logger.info("UPDATE message received from " + str(sender_address))
+                process_update_message(parsed_msg, sender_address, this_broker_info)
+            case "BROKER_NEIGHBORS_REQUEST":
+                # BROKER_NEIGHBORS_REQUEST messages get the list of broker neighbors in return
+                broker_logger.info("BROKER_NEIGHBORS_REQUEST message received from " + str(sender_address))
+                process_broker_neighbors_request(parsed_msg, this_broker_info)
+            case "BROKER_NEIGHBORS_RESPONSE":
+                # BROKER_NEIGHBORS_RESPONSE has a list of broker neighbors from another broker
+                broker_logger.info("BROKER_NEIGHBORS_RESPONSE message received from " + str(sender_address))
+                process_broker_neighbors_response(parsed_msg)
     else:
         # if the message is not well-formed, send a NACK message
         broker_logger.info("received message not well formed from" + str(sender_address))

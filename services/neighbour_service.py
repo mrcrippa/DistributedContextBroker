@@ -24,28 +24,22 @@ def neighbour_broker_live_check(this_broker_info: dict):
 
 
 def process_broker_neighbors_response(rcv_msg: ParsedMessage):
-    # information about the responder broker
-    responder_broker_id = rcv_msg.get_token("BROKER_ID")
-    responder_broker_address = rcv_msg.get_token("BROKER_ADDRESS")
-    responder_broker_port = rcv_msg.get_token("BROKER_PORT")
-    responder_neighbors_list = rcv_msg.get_token("BROKER_NEIGHBORS")
 
     # add responder broker if not already in the broker neighbour table
-
-    searched_neighbour = broker_neighbors.search_entry(responder_broker_id)
+    searched_neighbour = broker_neighbors.search_entry(rcv_msg.get_token("BROKER_ID"))
 
     if searched_neighbour is None:
         neighbor = BrokerNeighborInfo()
-        neighbor.set_broker_neighbour_id(responder_broker_id)
-        neighbor.set_broker_neighbour_address(responder_broker_address)
-        neighbor.set_broker_neighbour_port(responder_broker_port)
+        neighbor.set_broker_neighbour_id(rcv_msg.get_token("BROKER_ID"))
+        neighbor.set_broker_neighbour_address(rcv_msg.get_token("BROKER_ADDRESS"))
+        neighbor.set_broker_neighbour_port(rcv_msg.get_token("BROKER_PORT"))
         neighbor.set_broker_neighbour_online(True)
         broker_neighbors.add_entry(neighbor)
     else:
         searched_neighbour.set_broker_neighbour_online(True)
 
     # insert neighbours in broker neighbours table
-    received_neighbour_list = json.loads(responder_neighbors_list)
+    received_neighbour_list = json.loads(rcv_msg.get_token("BROKER_NEIGHBORS"))
     for entry in received_neighbour_list:
         s_b_n = broker_neighbors.search_entry(entry.get("BROKER_ID"))
         if s_b_n is None:
@@ -60,21 +54,20 @@ def process_broker_neighbors_response(rcv_msg: ParsedMessage):
 
 
 def process_broker_neighbors_request(rcv_msg: ParsedMessage, this_broker_info: dict):
-    # information about the requester broker
-    requester_broker_id = rcv_msg.get_token("BROKER_ID")
-    requester_broker_address = rcv_msg.get_token("BROKER_ADDRESS")
-    requester_broker_port = rcv_msg.get_token("BROKER_PORT")
 
+    # send a response to the requester
     send_message(create_broker_neighbors_response_message_string(this_broker_info), this_broker_info["address"],
-                 (requester_broker_address, int(requester_broker_port)))
+                 (rcv_msg.get_token("BROKER_ADDRESS"), int(rcv_msg.get_token("BROKER_PORT"))))
 
-    searched_neighbour = broker_neighbors.search_entry(requester_broker_id)
+    # if the requester broker is already in the neighbour broker, update its online status
+    # if not, then insert into the neighbour broker table
+    searched_neighbour = broker_neighbors.search_entry(rcv_msg.get_token("BROKER_ID"))
 
     if searched_neighbour is None:
         neighbor = BrokerNeighborInfo()
-        neighbor.set_broker_neighbour_id(requester_broker_id)
-        neighbor.set_broker_neighbour_address(requester_broker_address)
-        neighbor.set_broker_neighbour_port(requester_broker_port)
+        neighbor.set_broker_neighbour_id(rcv_msg.get_token("BROKER_ID"))
+        neighbor.set_broker_neighbour_address(rcv_msg.get_token("BROKER_ADDRESS"))
+        neighbor.set_broker_neighbour_port(rcv_msg.get_token("BROKER_PORT"))
         neighbor.set_broker_neighbour_online(True)
         broker_neighbors.add_entry(neighbor)
     else:
