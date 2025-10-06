@@ -7,12 +7,6 @@ from utils.message_sender import send_message
 from utils.parsed_message import ParsedMessage
 
 
-def sub_timer_thread(entry_id: str):
-    """timer thread used to delete subscriptions after their duration"""
-    sub_table.remove_entry(entry_id)
-    broker_logger.info("sub_table : " + sub_table.print())
-
-
 def process_subscription(rcv_msg: ParsedMessage, this_broker_info: dict):
     """adds a subscription to the subscription table, received message was already verified and it's well-formed"""
 
@@ -39,7 +33,7 @@ def process_subscription(rcv_msg: ParsedMessage, this_broker_info: dict):
         # add new subscription
         sub_table.add_entry(sub)
 
-        broker_logger.info("sub_table : " + sub_table.print())
+        broker_logger.debug("sub_table : " + sub_table.print())
 
         # notify the subscriber that the subscription was successfully done, sending an ACK message
         send_message(create_ack_message_string(this_broker_info, "SUBSCRIBE",

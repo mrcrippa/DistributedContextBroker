@@ -32,7 +32,7 @@ def main():
     log_queue = queue.Queue(-1)
     queue_handler = QueueHandler(log_queue)
     broker_logger.addHandler(queue_handler)
-    broker_logger.setLevel(logging.INFO)
+    broker_logger.setLevel(logging.DEBUG)
 
     console_handler = logging.StreamHandler()
     formatter = logging.Formatter('%(asctime)s - %(threadName)s - %(name)s - %(levelname)s - %(message)s')
@@ -78,34 +78,13 @@ def main():
         broker_neighbors.add_entry(neighbor)
 
     # start the neighbour live check regular timer
-    threading.Timer(1, neighbour_broker_live_check,
-                    [this_broker_info]).start()
+    # threading.Timer(1, neighbour_broker_live_check,[this_broker_info]).start()
 
     # start the time correction with ntp regular timer
     broker_clock.time_correction_with_ntp()
 
-
-    neighbor = BrokerNeighborInfo()
-    neighbor.set_broker_neighbour_id("adklsfjklasdfjlasdfjlasökjdflasödfkjasölfj")
-    neighbor.set_broker_neighbour_address("asdflkjadfslökjadf")
-    neighbor.set_broker_neighbour_port("ladksjfdklsfjdklsfj")
-    neighbor.set_broker_neighbour_online(True)
-
-    big_list = {}
-
-    for i in range(5000):
-        big_list[i] = neighbor
-
-    print(sys.getsizeof(big_list))
-
-
     while True:
-        # main loop
-        # wait for messages, when one is received, create a service_task thread
-        # print(this_broker_info["id"] + " - Waiting for messages...")
         received_raw_data, sender_address = broker_sock.recvfrom(1024)
-        broker_logger.info("received message from " + str(sender_address))
-
         Thread(target=message_received_service_task,
                args=[received_raw_data, sender_address, this_broker_info]).start()
 

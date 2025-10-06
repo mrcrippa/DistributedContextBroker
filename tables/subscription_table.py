@@ -1,6 +1,6 @@
 import threading
 
-from services.subscribe_service import sub_timer_thread
+from global_data import broker_logger
 from utils.misc_utils import is_string_valid_int_bigger_than_zero
 
 class Subscription(object):
@@ -16,8 +16,6 @@ class Subscription(object):
         self._subscriber_port = 0
         "for how many seconds should this subscription be valid"
         self._duration = 0
-        "timer thread associated with this subscription, when the subscription is no longer valid, it will call this thread and delete itself"
-        self._timer_thread = None
 
     def get_object_id(self) -> str:
         """unique identifier for this object"""
@@ -68,14 +66,6 @@ class Subscription(object):
         if duration is not None and is_string_valid_int_bigger_than_zero(duration):
             self._duration = int(duration)
 
-    def activate_timer_thread(self):
-        self._timer_thread = threading.Timer(float(self.get_duration()), sub_timer_thread,
-                                             [self.get_object_id()])
-        self._timer_thread.start()
-
-    def deactivate_timer_thread(self):
-        self._timer_thread.cancel()
-
     def print(self) -> str:
         contents = {"SUBSCRIPTION_ID": self.get_object_id(),
                     "ENTITY_ID": self.get_entity_id(), "ENTITY_TYPE": self.get_entity_type(), "SCOPE": self.get_scope(),
@@ -94,19 +84,23 @@ class SubscriptionTable(object):
     def __init__(self):
         self._table = {}
         self._table_lock = threading.Lock()
+        # timer threads associated with each subscription, when the subscription is no longer valid, it will call this thread and delete the subscription
+        self._sub_timers = {}
 
     def add_entry(self, sub: Subscription):
         if sub is not None:
             self._table_lock.acquire()
             self._table[sub.get_object_id()] = sub
-            self._table[sub.get_object_id()].activate_timer_thread()
+            self._sub_timers[sub.get_object_id()] = threading.Timer(float(sub.get_duration()), sub_timer_thread,
+                                                 [sub.get_object_id(), self])
+            self._sub_timers[sub.get_object_id()].start()
             self._table_lock.release()
 
     def remove_entry(self, entry_id: str):
         """removes an entry from the table, if the entry doesn't exist, then nothing happens"""
         self._table_lock.acquire()
         if entry_id is not None and entry_id in self._table:
-            self._table[entry_id].deactivate_timer_thread()
+            self._sub_timers[entry_id].cancel()
             del self._table[entry_id]
         self._table_lock.release()
 
@@ -129,3 +123,8 @@ class SubscriptionTable(object):
             result += '\n' + sub.print() + " ||"
         self._table_lock.release()
         return result
+
+def sub_timer_thread(entry_id: str, s_table: SubscriptionTable):
+    """timer thread used to delete subscriptions after their duration"""
+    s_table.remove_entry(entry_id)
+    broker_logger.info("sub_table : " + s_table.print())

@@ -3,7 +3,7 @@
 # which address to host the broker
 # if port is 0, then the broker will search for a random port
 host_broker_ip = 127.0.0.1
-port_broker_nr = 0
+port_broker_nr = 50000
 ##########################
 # name of the log file
 log_file_name = log_context_broker

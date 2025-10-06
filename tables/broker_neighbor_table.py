@@ -124,7 +124,8 @@ class BrokerNeighborTable(object):
         to_be_verified = list(self._table.keys())
 
         for entry in checked_brokers:
-            to_be_verified.remove(entry)
+            if entry in to_be_verified:
+                to_be_verified.remove(entry)
 
         self._table_lock.acquire()
         while to_be_verified:

@@ -4,13 +4,6 @@ from utils.message_creator import create_context_response_message_string, create
 from utils.message_sender import send_message
 from utils.parsed_message import ParsedMessage
 
-
-def ctx_timer_thread(entry_id: str):
-    """timer thread used to delete context table entries after their validity ends"""
-    ctx_table.remove_entry(entry_id)
-    broker_logger.info("ctx_table : " + ctx_table.print())
-
-
 def process_update_message(rcv_msg: ParsedMessage, sender_address: tuple, this_broker_info: dict):
     """adds an entry to the context info table, received message was already verified and it's well-formed"""
 
@@ -30,15 +23,19 @@ def process_update_message(rcv_msg: ParsedMessage, sender_address: tuple, this_b
     # add new data
     ctx_table.add_entry(ctx_data)
 
-    broker_logger.info("ctx_table : " + ctx_table.print())
+    broker_logger.debug("ctx_table : " + ctx_table.print())
+    broker_logger.debug("sub_table : " + sub_table.print())
+
+    broker_logger.debug("here")
 
     # send an ACK message confirming the update
     send_message(create_ack_message_string(this_broker_info, "UPDATE", str(sender_address),
-                                           "Successful update to [ " + ctx_data.get_entity_id() + " , " + ctx_data.get_entity_type() + " , " + ctx_data.get_scope() + " ]"),
+                                           "[" + ctx_data.get_entity_id() + "," + ctx_data.get_entity_type() + "," + ctx_data.get_scope() + "]"),
                  this_broker_info["address"], sender_address)
 
     # if there are any subscriptions to this data, then notify all subscribers
     for sub in sub_table.search_entry(ctx_data.get_entity_id(), ctx_data.get_entity_type(),
                                       ctx_data.get_scope()):
+        broker_logger.debug("sending data to : " + str((sub.get_subscriber_address(), sub.get_subscriber_port())))
         send_message(create_context_response_message_string(this_broker_info, ctx_data), this_broker_info["address"],
                      (sub.get_subscriber_address(), sub.get_subscriber_port()))

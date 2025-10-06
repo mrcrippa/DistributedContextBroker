@@ -11,9 +11,6 @@ from utils.parsed_message import ParsedMessage
 
 def neighbour_broker_live_check(this_broker_info: dict):
     # checking if any of your neighbours is offline, by requesting their list of neighbours
-    broker_logger.info("neighbour_broker_live_check")
-
-    # retrieves
     for addr, port in broker_neighbors.check_table_for_potentially_offline_brokers():
         send_message(create_broker_neighbors_request_message_string(this_broker_info),
                      this_broker_info["address"],
@@ -24,7 +21,6 @@ def neighbour_broker_live_check(this_broker_info: dict):
 
 
 def process_broker_neighbors_response(rcv_msg: ParsedMessage):
-
     # add responder broker if not already in the broker neighbour table
     searched_neighbour = broker_neighbors.search_entry(rcv_msg.get_token("BROKER_ID"))
 
@@ -54,7 +50,6 @@ def process_broker_neighbors_response(rcv_msg: ParsedMessage):
 
 
 def process_broker_neighbors_request(rcv_msg: ParsedMessage, this_broker_info: dict):
-
     # send a response to the requester
     send_message(create_broker_neighbors_response_message_string(this_broker_info), this_broker_info["address"],
                  (rcv_msg.get_token("BROKER_ADDRESS"), int(rcv_msg.get_token("BROKER_PORT"))))
