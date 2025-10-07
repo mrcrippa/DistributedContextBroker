@@ -9,7 +9,7 @@ port_broker_nr = 50000
 log_file_name = log_context_broker
 ##########################
 # identifier for this broker, if value is 0 then a random one is generated
-broker_id = 0
+broker_id = test_broker
 ##########################
 # list of startup neighbour brokers - the list should follow JSON, always ["broker1_id", "broker1_ip", "broker1_port", "broker2_id", "broker2_ip", "broker2_port",...]
 start_neighbours = ["broker1_id", "broker1_ip", "0", "broker2_id", "broker2_ip", "1"]

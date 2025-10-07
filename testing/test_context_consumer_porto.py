@@ -1,6 +1,7 @@
 import json
 import random
 import socket
+import time
 
 
 def main():
@@ -24,7 +25,18 @@ def main():
          "SUBSCRIBER_PORT": port_nr,
          "ENTITY_ID": "Porto",
          "ENTITY_TYPE": "location", "SCOPE": "weather_information",
-         "DURATION": 600})
+         "DURATION": 60})
+
+    print(dict_as_string)
+
+    consumer_sock.sendto(str.encode(dict_as_string), ("127.0.0.1", 50000))
+
+    dict_as_string = json.dumps(
+        {"TYPE": "PING",
+         "BROKER_ADDRESS": "127.0.0.1",
+         "BROKER_PORT": 50000,
+         "BROKER_ID": "test_broker",
+         "TIMESTAMP": str(int(time.time() * 1000))})
 
     print(dict_as_string)
 

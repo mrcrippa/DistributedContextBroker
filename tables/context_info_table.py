@@ -4,8 +4,6 @@ from global_data import *
 from utils.misc_utils import is_string_valid_int_bigger_than_zero
 
 
-
-
 class ContextInfo(object):
     """Class representing an entry in the context info table"""
 
@@ -88,7 +86,6 @@ class ContextInfo(object):
         return str(contents)
 
 
-
 class ContextInfoTable(object):
     """
     Class representing a table with all the gathered context information
@@ -106,8 +103,10 @@ class ContextInfoTable(object):
             self._table_lock.acquire()
             self._table[context_info_object.get_object_id()] = context_info_object
             valid_interval_time = (context_info_object.get_validity_end() - broker_clock.current_broker_time()) / 1000
-            self._entry_timers[context_info_object.get_object_id()] = threading.Timer(valid_interval_time, ctx_timer_thread,
-                                                 [context_info_object.get_object_id(), self])
+            self._entry_timers[context_info_object.get_object_id()] = threading.Timer(valid_interval_time,
+                                                                                      ctx_timer_thread,
+                                                                                      [context_info_object.get_object_id(),
+                                                                                       self])
             self._entry_timers[context_info_object.get_object_id()].start()
             self._table_lock.release()
 
@@ -122,6 +121,7 @@ class ContextInfoTable(object):
     def search_entry(self, entity_id: str, entity_type: str, scope: str) -> ContextInfo | None:
         """searches for an entry from the table, if entry exist, returns the entry
          if entry doesn't exist, then returns None"""
+        result = None
         if entity_id is not None and entity_type is not None and scope is not None:
             key_identifier = str(hash(entity_id + entity_type + scope))
             self._table_lock.acquire()
@@ -133,9 +133,9 @@ class ContextInfoTable(object):
 
                 currently_valid = begin_tag <= current_time <= end_tag
                 if currently_valid:
-                    return self._table[key_identifier]
+                    result = self._table[key_identifier]
             self._table_lock.release()
-        return None
+        return result
 
     def print(self) -> str:
         result = ""
@@ -150,4 +150,3 @@ def ctx_timer_thread(entry_id: str, ctx_tab: ContextInfoTable):
     """timer thread used to delete context table entries after their validity ends"""
     ctx_tab.remove_entry(entry_id)
     broker_logger.info("ctx_table : " + ctx_tab.print())
-

@@ -13,7 +13,6 @@ from services.neighbour_service import neighbour_broker_live_check
 from tables.broker_neighbor_table import BrokerNeighborInfo
 from utils.message_creator import *
 from utils.parsed_message import *
-from utils.broker_clock import *
 
 
 def main():
