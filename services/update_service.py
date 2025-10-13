@@ -1,21 +1,15 @@
 from global_data import *
 from tables.context_info_table import ContextInfo
-from utils.message_creator import create_context_response_message_string, create_ack_message_string
-from utils.message_sender import send_message
+from utils.message_sender import send_ack, send_context_response
+
 from utils.parsed_message import ParsedMessage
+
 
 def process_update_message(rcv_msg: ParsedMessage, sender_address: tuple, this_broker_info: dict):
     """adds an entry to the context info table, received message was already verified and it's well-formed"""
 
     # create ContextInfo object
-    ctx_data = ContextInfo()
-    ctx_data.set_provider_id(rcv_msg.get_token("PROVIDER_ID"))
-    ctx_data.set_entity_id(rcv_msg.get_token("ENTITY_ID"))
-    ctx_data.set_entity_type(rcv_msg.get_token("ENTITY_TYPE"))
-    ctx_data.set_scope(rcv_msg.get_token("SCOPE"))
-    ctx_data.set_validity_begin(rcv_msg.get_token("VALIDITY_BEGIN"))
-    ctx_data.set_validity_end(rcv_msg.get_token("VALIDITY_END"))
-    ctx_data.set_data(rcv_msg.get_token("DATA"))
+    ctx_data = ContextInfo(rcv_msg)
 
     # remove any data already there, since this will replace it
     # if no data exists, then nothing happens
@@ -26,13 +20,13 @@ def process_update_message(rcv_msg: ParsedMessage, sender_address: tuple, this_b
     broker_logger.debug("sub_table : " + sub_table.print())
 
     # send an ACK message confirming the update
-    send_message(create_ack_message_string(this_broker_info, "UPDATE", str(sender_address),
-                                           "[" + ctx_data.get_entity_id() + "," + ctx_data.get_entity_type() + "," + ctx_data.get_scope() + "]"),
-                 this_broker_info["address"], sender_address)
+    send_ack(this_broker_info, "UPDATE", str(sender_address),
+             "[" + ctx_data.get_entity_id() + "," + ctx_data.get_entity_type() + "," + ctx_data.get_scope() + "]",
+             sender_address)
 
     # if there are any subscriptions to this data, then notify all subscribers
     for sub in sub_table.search_entry(ctx_data.get_entity_id(), ctx_data.get_entity_type(),
                                       ctx_data.get_scope()):
         broker_logger.debug("sending data to : " + str((sub.get_subscriber_address(), sub.get_subscriber_port())))
-        send_message(create_context_response_message_string(this_broker_info, ctx_data), this_broker_info["address"],
-                     (sub.get_subscriber_address(), sub.get_subscriber_port()))
+        send_context_response(this_broker_info, ctx_data,
+                              (sub.get_subscriber_address(), sub.get_subscriber_port()))

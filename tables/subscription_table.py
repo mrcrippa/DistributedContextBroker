@@ -1,21 +1,22 @@
 import threading
 
 from global_data import broker_logger
-from utils.misc_utils import is_string_valid_int_bigger_than_zero
+from utils.parsed_message import ParsedMessage
+
 
 class Subscription(object):
     """
         Class representing an entry in the subscription table
     """
 
-    def __init__(self):
-        self._entity_id = ""
-        self._entity_type = ""
-        self._scope = ""
-        self._subscriber_address = ""
-        self._subscriber_port = 0
+    def __init__(self, rcv_msg: ParsedMessage):
+        self._entity_id = rcv_msg.get_token("ENTITY_ID")
+        self._entity_type = rcv_msg.get_token("ENTITY_TYPE")
+        self._scope = rcv_msg.get_token("SCOPE")
+        self._subscriber_address = rcv_msg.get_token("SUBSCRIBER_ADDRESS")
+        self._subscriber_port = int(rcv_msg.get_token("SUBSCRIBER_PORT"))
         "for how many seconds should this subscription be valid"
-        self._duration = 0
+        self._duration = int(rcv_msg.get_token("DURATION"))
 
     def get_object_id(self) -> str:
         """unique identifier for this object"""
@@ -25,46 +26,21 @@ class Subscription(object):
     def get_entity_id(self) -> str:
         return self._entity_id
 
-    def set_entity_id(self, entity_id: str):
-        if entity_id is not None:
-            self._entity_id = entity_id
-
     def get_entity_type(self) -> str:
         return self._entity_type
-
-    def set_entity_type(self, entity_type: str):
-        if entity_type is not None:
-            self._entity_type = entity_type
 
     def get_scope(self) -> str:
         return self._scope
 
-    def set_scope(self, scope: str):
-        if scope is not None:
-            self._scope = scope
-
     def get_subscriber_address(self) -> str:
         return self._subscriber_address
-
-    def set_subscriber_address(self, subscriber_address: str):
-        if subscriber_address is not None:
-            self._subscriber_address = subscriber_address
 
     def get_subscriber_port(self) -> int:
         return self._subscriber_port
 
-    def set_subscriber_port(self, subscriber_port: str):
-        if subscriber_port is not None and is_string_valid_int_bigger_than_zero(subscriber_port):
-            self._subscriber_port = int(subscriber_port)
-
     def get_duration(self) -> int:
         """for how many seconds should this subscription be valid"""
         return self._duration
-
-    def set_duration(self, duration: str):
-        """for how many seconds should this subscription be valid"""
-        if duration is not None and is_string_valid_int_bigger_than_zero(duration):
-            self._duration = int(duration)
 
     def print(self) -> str:
         contents = {"SUBSCRIPTION_ID": self.get_object_id(),
@@ -92,7 +68,7 @@ class SubscriptionTable(object):
             self._table_lock.acquire()
             self._table[sub.get_object_id()] = sub
             self._sub_timers[sub.get_object_id()] = threading.Timer(float(sub.get_duration()), sub_timer_thread,
-                                                 [sub.get_object_id(), self])
+                                                                    [sub.get_object_id(), self])
             self._sub_timers[sub.get_object_id()].start()
             self._table_lock.release()
 
@@ -123,6 +99,7 @@ class SubscriptionTable(object):
             result += '\n' + sub.print() + " ||"
         self._table_lock.release()
         return result
+
 
 def sub_timer_thread(entry_id: str, s_table: SubscriptionTable):
     """timer thread used to delete subscriptions after their duration"""

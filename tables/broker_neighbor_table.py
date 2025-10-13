@@ -3,7 +3,6 @@ import random
 import threading
 
 from global_data import broker_clock
-from utils.misc_utils import is_string_valid_int_bigger_than_zero
 
 
 class BrokerNeighborInfo(object):
@@ -11,10 +10,10 @@ class BrokerNeighborInfo(object):
         Class representing an entry in the broker neighbors table
     """
 
-    def __init__(self):
-        self._broker_neighbour_id = ""
-        self._broker_neighbour_address = ""
-        self._broker_neighbour_port = 0
+    def __init__(self, neighbour_id: str, neighbour_address: str, neighbour_port: str):
+        self._broker_neighbour_id = neighbour_id
+        self._broker_neighbour_address = neighbour_address
+        self._broker_neighbour_port = int(neighbour_port)
         self._broker_neighbour_online = False
         self._broker_neighbour_last_online_timestamp = 0
 
@@ -43,23 +42,11 @@ class BrokerNeighborInfo(object):
     def get_broker_neighbour_id(self) -> str:
         return self._broker_neighbour_id
 
-    def set_broker_neighbour_id(self, broker_id: str):
-        if broker_id is not None:
-            self._broker_neighbour_id = broker_id
-
     def get_broker_neighbour_address(self) -> str:
         return self._broker_neighbour_address
 
-    def set_broker_neighbour_address(self, broker_address: str):
-        if broker_address is not None:
-            self._broker_neighbour_address = broker_address
-
     def get_broker_neighbour_port(self) -> int:
         return self._broker_neighbour_port
-
-    def set_broker_neighbour_port(self, broker_port: str):
-        if broker_port is not None and is_string_valid_int_bigger_than_zero(broker_port):
-            self._broker_neighbour_port = int(broker_port)
 
     def print_entry(self) -> str:
         result = "[" + self._broker_neighbour_id + ", " + self._broker_neighbour_address + ", " + str(

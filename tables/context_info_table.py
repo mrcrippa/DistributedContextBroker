@@ -1,24 +1,25 @@
 import threading
 
 from global_data import *
-from utils.misc_utils import is_string_valid_int_bigger_than_zero
+from utils.parsed_message import ParsedMessage
 
 
 class ContextInfo(object):
     """Class representing an entry in the context info table"""
 
-    def __init__(self):
-        self._provider_id = ""
-        self._entity_id = ""
-        self._entity_type = ""
-        self._scope = ""
-        self._data = ""
-        "timestamps for the beginning and the end of the time period when the context info is valid"
-        "time expressed as milliseconds UNIX time"
-        self._validity_begin = 0
-        self._validity_end = 0
+    def __init__(self, rcv_msg : ParsedMessage):
 
         self._timer_thread = None
+        self._provider_id = rcv_msg.get_token("PROVIDER_ID")
+        self._entity_id = rcv_msg.get_token("ENTITY_ID")
+        self._entity_type = rcv_msg.get_token("ENTITY_TYPE")
+        self._scope = rcv_msg.get_token("SCOPE")
+        self._data = rcv_msg.get_token("DATA")
+        "timestamps for the beginning and the end of the time period when the context info is valid"
+        "time expressed as milliseconds UNIX time"
+        self._validity_begin = int(rcv_msg.get_token("VALIDITY_BEGIN"))
+        self._validity_end = int(rcv_msg.get_token("VALIDITY_END"))
+
 
     def get_object_id(self) -> str:
         """unique identifier for this object"""
@@ -27,55 +28,25 @@ class ContextInfo(object):
     def get_provider_id(self) -> str:
         return self._provider_id
 
-    def set_provider_id(self, provider_id: str):
-        if provider_id is not None:
-            self._provider_id = provider_id
-
     def get_entity_id(self) -> str:
         return self._entity_id
-
-    def set_entity_id(self, entity_id: str):
-        if entity_id is not None:
-            self._entity_id = entity_id
 
     def get_entity_type(self) -> str:
         return self._entity_type
 
-    def set_entity_type(self, entity_type: str):
-        if entity_type is not None:
-            self._entity_type = entity_type
-
     def get_scope(self) -> str:
         return self._scope
 
-    def set_scope(self, scope: str):
-        if scope is not None:
-            self._scope = scope
-
     def get_data(self) -> str:
         return self._data
-
-    def set_data(self, data: str):
-        if data is not None:
-            self._data = data
 
     def get_validity_begin(self) -> int:
         """value for the beginning of the time period when the context info is valid, time expressed as milliseconds UNIX time """
         return self._validity_begin
 
-    def set_validity_begin(self, validity_begin: str):
-        """timestamp for the beginning of the time period when the context info is valid, time expressed as milliseconds UNIX time """
-        if validity_begin is not None and is_string_valid_int_bigger_than_zero(validity_begin):
-            self._validity_begin = int(validity_begin)
-
     def get_validity_end(self) -> int:
         """value for the end of the time period when the context info is valid, time expressed as milliseconds UNIX time """
         return self._validity_end
-
-    def set_validity_end(self, validity_end: str):
-        """timestamp for the end of the time period when the context info is valid, time expressed as milliseconds UNIX time """
-        if validity_end is not None and is_string_valid_int_bigger_than_zero(validity_end):
-            self._validity_end = int(validity_end)
 
     def print(self) -> str:
         contents = {"CONTEXT_INFO_ID": self.get_object_id(), "PROVIDER_ID": self.get_provider_id(),

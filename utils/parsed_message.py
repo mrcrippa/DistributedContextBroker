@@ -2,16 +2,27 @@ import json
 import logging
 
 from global_data import broker_clock
-from utils.misc_utils import is_string_valid_int_bigger_than_zero
 
 # set with the valid types of messages the broker will receive
 message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_RESPONSE",
                     "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE", "BROKER_SUBSCRIBE"}
 
 
+def is_string_valid_int_bigger_than_zero(value: str) -> bool:
+    """check if a string is a valid integer bigger than zero"""
+    try:
+        if int(value) <= 0:
+            return False
+    except ValueError:
+        return False
+    return True
+
+
 class ParsedMessage(object):
     """
     Class representing a message received by the Broker
+    The raw message will be parsed and verified
+    Only well-formed messages should be used
     """
 
     def __init__(self, message_raw_data):
@@ -187,9 +198,6 @@ class ParsedMessage(object):
         elif self._message_tokens.get("MAXIMUM_HOPS") is None or not is_string_valid_int_bigger_than_zero(
                 self._message_tokens.get("MAXIMUM_HOPS")):
             return False
-        elif self._message_tokens.get("FORWARD") is None or type(
-                self._message_tokens.get("FORWARD")).__name__ != "bool":
-            return False
         elif self._message_tokens.get("CHECKED_BROKERS") is None or type(
                 self._message_tokens.get("CHECKED_BROKERS")).__name__ != "list":
             return False
@@ -223,7 +231,8 @@ class ParsedMessage(object):
         # any request for the data will only return when the data is valid
 
         # checking if the validity begin tag refers to a timestamp that comes before the validity end timestamp
-        end_after_begin = int(self._message_tokens.get("VALIDITY_BEGIN")) < int(self._message_tokens.get("VALIDITY_END"))
+        end_after_begin = int(self._message_tokens.get("VALIDITY_BEGIN")) < int(
+            self._message_tokens.get("VALIDITY_END"))
         # validity end should come after the current broker time
         end_after_current = broker_clock.current_broker_time() < int(self._message_tokens.get("VALIDITY_END"))
 

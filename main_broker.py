@@ -1,17 +1,15 @@
 import configparser
 import queue
-import random
-import socket
 import sys
+import threading
 import uuid
 from logging.handlers import QueueHandler, QueueListener
 from threading import Thread
 
-from global_data import *
 from services.message_received_service import message_received_service_task
 from services.neighbour_service import neighbour_broker_live_check
 from tables.broker_neighbor_table import BrokerNeighborInfo
-from utils.message_creator import *
+from utils.message_sender import *
 from utils.parsed_message import *
 
 
@@ -69,15 +67,12 @@ def main():
     start_neighbours = json.loads(config['config_values']['start_neighbours'])
 
     for index in range(0, len(start_neighbours), 3):
-        neighbor = BrokerNeighborInfo()
-        neighbor.set_broker_neighbour_id(start_neighbours[index])
-        neighbor.set_broker_neighbour_address(start_neighbours[index + 1])
-        neighbor.set_broker_neighbour_port(start_neighbours[index + 2])
+        neighbor = BrokerNeighborInfo(start_neighbours[index], start_neighbours[index + 1], start_neighbours[index + 2])
         neighbor.set_broker_neighbour_online(True)
         broker_neighbors.add_entry(neighbor)
 
     # start the neighbour live check regular timer
-    # threading.Timer(1, neighbour_broker_live_check,[this_broker_info]).start()
+    threading.Timer(1, neighbour_broker_live_check,[this_broker_info]).start()
 
     # start the time correction with ntp regular timer
     broker_clock.time_correction_with_ntp()
