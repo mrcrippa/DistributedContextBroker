@@ -216,27 +216,12 @@ class ParsedMessage(object):
             return False
         elif self._message_tokens.get("DATA") is None:
             return False
-        elif self._message_tokens.get(
-                "VALIDITY_BEGIN") is None or not is_string_valid_int_bigger_than_zero(
-            self._message_tokens.get("VALIDITY_BEGIN")):
-            return False
         elif self._message_tokens.get("VALIDITY_END") is None or not is_string_valid_int_bigger_than_zero(
                 self._message_tokens.get("VALIDITY_END")):
             return False
 
-        # checks if the validity timestamps are correct
-        #  there two valid situations:
-        #  the validity of the update begins before the current time and ends after the current time
-        #  the validity of the update begins and ends after the current time (in the future)
-        # any request for the data will only return when the data is valid
-
-        # checking if the validity begin tag refers to a timestamp that comes before the validity end timestamp
-        end_after_begin = int(self._message_tokens.get("VALIDITY_BEGIN")) < int(
-            self._message_tokens.get("VALIDITY_END"))
         # validity end should come after the current broker time
-        end_after_current = broker_clock.current_broker_time() < int(self._message_tokens.get("VALIDITY_END"))
-
-        if not (end_after_begin and end_after_current):
+        if not (broker_clock.current_broker_time() < int(self._message_tokens.get("VALIDITY_END"))):
             return False
 
         return True

@@ -3,7 +3,9 @@ import random
 import socket
 import threading
 import time
+
 import openmeteo_requests
+
 
 def send_info(sock, this_address, this_port_nr, broker_address, broker_port):
     params = {
@@ -27,7 +29,6 @@ def send_info(sock, this_address, this_port_nr, broker_address, broker_port):
         {"TYPE": "UPDATE", "PROVIDER_ID": "test_provider_kl",
          "ENTITY_ID": "Kaiserslautern",
          "ENTITY_TYPE": "location", "SCOPE": "weather_information",
-         "VALIDITY_BEGIN": str(int(time.time() * 1000)),
          "VALIDITY_END": str((int(time.time() * 1000)) + 900000), "DATA": msg_data})
 
     print(dict_as_string)
@@ -36,6 +37,7 @@ def send_info(sock, this_address, this_port_nr, broker_address, broker_port):
 
     threading.Timer(20, send_info,
                     [sock, this_address, this_port_nr, "127.0.0.1", 50000]).start()
+
 
 def main():
     # create a new socket using UDP
@@ -54,7 +56,6 @@ def main():
 
     threading.Timer(1, send_info,
                     [provider_sock, "127.0.0.1", port_nr, "127.0.0.1", 50000]).start()
-
 
     while True:
         received_raw_data, sender_address = provider_sock.recvfrom(1024)

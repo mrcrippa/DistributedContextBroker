@@ -7,19 +7,16 @@ from utils.parsed_message import ParsedMessage
 class ContextInfo(object):
     """Class representing an entry in the context info table"""
 
-    def __init__(self, rcv_msg : ParsedMessage):
-
+    def __init__(self, rcv_msg: ParsedMessage):
         self._timer_thread = None
         self._provider_id = rcv_msg.get_token("PROVIDER_ID")
         self._entity_id = rcv_msg.get_token("ENTITY_ID")
         self._entity_type = rcv_msg.get_token("ENTITY_TYPE")
         self._scope = rcv_msg.get_token("SCOPE")
         self._data = rcv_msg.get_token("DATA")
-        "timestamps for the beginning and the end of the time period when the context info is valid"
+        "timestamp for the end of the time period when the context info is valid"
         "time expressed as milliseconds UNIX time"
-        self._validity_begin = int(rcv_msg.get_token("VALIDITY_BEGIN"))
         self._validity_end = int(rcv_msg.get_token("VALIDITY_END"))
-
 
     def get_object_id(self) -> str:
         """unique identifier for this object"""
@@ -40,10 +37,6 @@ class ContextInfo(object):
     def get_data(self) -> str:
         return self._data
 
-    def get_validity_begin(self) -> int:
-        """value for the beginning of the time period when the context info is valid, time expressed as milliseconds UNIX time """
-        return self._validity_begin
-
     def get_validity_end(self) -> int:
         """value for the end of the time period when the context info is valid, time expressed as milliseconds UNIX time """
         return self._validity_end
@@ -51,8 +44,7 @@ class ContextInfo(object):
     def print(self) -> str:
         contents = {"CONTEXT_INFO_ID": self.get_object_id(), "PROVIDER_ID": self.get_provider_id(),
                     "ENTITY_ID": self.get_entity_id(), "ENTITY_TYPE": self.get_entity_type(), "SCOPE": self.get_scope(),
-                    "DATA": self.get_data(), "VALIDITY_BEGIN": self.get_validity_begin(),
-                    "VALIDITY_END": self.get_validity_end()}
+                    "DATA": self.get_data(), "VALIDITY_END": self.get_validity_end()}
 
         return str(contents)
 
@@ -97,13 +89,7 @@ class ContextInfoTable(object):
             key_identifier = str(hash(entity_id + entity_type + scope))
             self._table_lock.acquire()
             if key_identifier in self._table:
-
-                begin_tag = int(self._table[key_identifier].get_validity_begin())
-                end_tag = int(self._table[key_identifier].get_validity_end())
-                current_time = broker_clock.current_broker_time()
-
-                currently_valid = begin_tag <= current_time <= end_tag
-                if currently_valid:
+                if broker_clock.current_broker_time() <= int(self._table[key_identifier].get_validity_end()):
                     result = self._table[key_identifier]
             self._table_lock.release()
         return result
@@ -120,4 +106,4 @@ class ContextInfoTable(object):
 def ctx_timer_thread(entry_id: str, ctx_tab: ContextInfoTable):
     """timer thread used to delete context table entries after their validity ends"""
     ctx_tab.remove_entry(entry_id)
-    broker_logger.info("ctx_table : " + ctx_tab.print())
+    broker_logger.debug("ctx_table : " + ctx_tab.print())

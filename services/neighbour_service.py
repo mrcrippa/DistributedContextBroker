@@ -9,8 +9,7 @@ from utils.parsed_message import ParsedMessage
 
 def neighbour_broker_live_check(this_broker_info: dict):
     # checking if any of your neighbours is offline, by requesting their list of neighbours
-    for addr, port in broker_neighbors.check_table_for_potentially_offline_brokers():
-        send_broker_neighbors_request(this_broker_info, (addr, port))
+    broker_neighbors.check_table_for_potentially_offline_brokers(this_broker_info)
 
     threading.Timer(15, neighbour_broker_live_check,
                     [this_broker_info]).start()

@@ -1,6 +1,8 @@
 import threading
 
 from global_data import broker_logger
+from tables.context_info_table import ContextInfo
+from utils.message_sender import send_context_response
 from utils.parsed_message import ParsedMessage
 
 
@@ -91,6 +93,18 @@ class SubscriptionTable(object):
                     result_list.append(sub)
             self._table_lock.release()
         return result_list
+
+    def notify_subscribers(self, this_broker_info: dict, ctx_data: ContextInfo):
+        # if there are any subscriptions to this data, then notify all subscribers
+        self._table_lock.acquire()
+        for sub in self._table.values():
+            if sub.get_entity_id() == ctx_data.get_entity_id() and sub.get_entity_type() == ctx_data.get_entity_type() and sub.get_scope() == ctx_data.get_scope():
+                broker_logger.debug(
+                    "sending data to : " + str((sub.get_subscriber_address(), sub.get_subscriber_port())))
+                send_context_response(this_broker_info, ctx_data,
+                                      (sub.get_subscriber_address(), sub.get_subscriber_port()))
+
+        self._table_lock.release()
 
     def print(self) -> str:
         result = ""

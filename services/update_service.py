@@ -25,8 +25,4 @@ def process_update_message(rcv_msg: ParsedMessage, sender_address: tuple, this_b
              sender_address)
 
     # if there are any subscriptions to this data, then notify all subscribers
-    for sub in sub_table.search_entry(ctx_data.get_entity_id(), ctx_data.get_entity_type(),
-                                      ctx_data.get_scope()):
-        broker_logger.debug("sending data to : " + str((sub.get_subscriber_address(), sub.get_subscriber_port())))
-        send_context_response(this_broker_info, ctx_data,
-                              (sub.get_subscriber_address(), sub.get_subscriber_port()))
+    sub_table.notify_subscribers(this_broker_info, ctx_data)

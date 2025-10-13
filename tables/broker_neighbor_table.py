@@ -3,6 +3,7 @@ import random
 import threading
 
 from global_data import broker_clock
+from utils.message_sender import send_broker_neighbors_request
 
 
 class BrokerNeighborInfo(object):
@@ -92,15 +93,13 @@ class BrokerNeighborTable(object):
         self._table_lock.release()
         return None
 
-    def check_table_for_potentially_offline_brokers(self) -> list:
-        """returns a list with all the entries in the table"""
-        result = []
+    def check_table_for_potentially_offline_brokers(self, this_broker_info : dict):
+        """checks which neighbours might be potentially offline, and sends them a neighbours_request"""
         self._table_lock.acquire()
         for entry in self._table.values():
             if entry.is_broker_neighbour_potentially_offline():
-                result.append((entry.get_broker_neighbour_address(), entry.get_broker_neighbour_port()))
+                send_broker_neighbors_request(this_broker_info, (entry.get_broker_neighbour_address(), entry.get_broker_neighbour_port()))
         self._table_lock.release()
-        return result
 
     def get_small_flooding_list(self, checked_brokers: list) -> list:
         """returns a list of neighbours to be used for the broker subscribe procedure

@@ -27,7 +27,6 @@ def send_info(sock, this_address, this_port_nr, broker_address, broker_port):
         {"TYPE": "UPDATE", "PROVIDER_ID": "test_provider_porto",
          "ENTITY_ID": "Porto",
          "ENTITY_TYPE": "location", "SCOPE": "weather_information",
-         "VALIDITY_BEGIN": str(int(time.time() * 1000)),
          "VALIDITY_END": str((int(time.time() * 1000)) + 900000), "DATA": msg_data})
 
     print(dict_as_string)

@@ -7,9 +7,6 @@ from global_data import broker_neighbors, broker_clock
 from tables.context_info_table import ContextInfo
 from tables.subscription_table import Subscription
 
-
-# utility code for creating and sending messages
-
 def send_message(message: str, broker_address: str, sender_address: tuple):
     """sends message to sender_address using UDP"""
     new_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -71,7 +68,6 @@ def send_context_response(this_broker_info: dict,
          "BROKER_PORT": this_broker_info["port"], "PROVIDER_ID": ctx_info.get_provider_id(),
          "ENTITY_ID": ctx_info.get_entity_id(),
          "ENTITY_TYPE": ctx_info.get_entity_type(), "SCOPE": ctx_info.get_scope(),
-         "VALIDITY_BEGIN": str(ctx_info.get_validity_begin()),
          "VALIDITY_END": str(ctx_info.get_validity_end()), "DATA": ctx_info.get_data()})
 
     send_message(dict_as_string, this_broker_info["address"], sender_address)
