@@ -34,7 +34,7 @@ def send_info(sock, this_address, this_port_nr, broker_address, broker_port):
     sock.sendto(str.encode(dict_as_string), (broker_address, broker_port))
 
     threading.Timer(20, send_info,
-                    [sock, this_address, this_port_nr, "127.0.0.1", 50000]).start()
+                    [sock, this_address, this_port_nr, "127.0.0.1", 50005]).start()
 
 def main():
     # create a new socket using UDP
@@ -52,7 +52,7 @@ def main():
         socket_connected = True
 
     threading.Timer(1, send_info,
-                    [provider_sock, "127.0.0.1", port_nr, "127.0.0.1", 50000]).start()
+                    [provider_sock, "127.0.0.1", port_nr, "127.0.0.1", 50005]).start()
 
 
     while True:

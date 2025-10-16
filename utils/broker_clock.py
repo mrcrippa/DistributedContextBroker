@@ -16,8 +16,11 @@ class BrokerClock(object):
     def time_correction_with_ntp(self):
         if not self._with_ntp:
             return
-        response = ntplib.NTPClient().request('europe.pool.ntp.org', version=3)
-        self._time_correction = round((response.delay + response.offset) * 1000)
+        try:
+            response = ntplib.NTPClient().request('europe.pool.ntp.org', version=3)
+            self._time_correction = round((response.delay + response.offset) * 1000)
+        except ntplib.NTPException:
+            self._time_correction = 0
         threading.Timer(10, self.time_correction_with_ntp, []).start()
 
     def current_broker_time(self) -> int:

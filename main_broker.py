@@ -4,8 +4,10 @@ import sys
 import threading
 import uuid
 from logging.handlers import QueueHandler, QueueListener
+from pathlib import Path
 from threading import Thread
 
+from global_data import broker_neighbors
 from services.message_received_service import message_received_service_task
 from services.neighbour_service import neighbour_broker_live_check
 from tables.broker_neighbor_table import BrokerNeighborInfo
@@ -14,9 +16,14 @@ from utils.parsed_message import *
 
 
 def main():
+
+    args = sys.argv[1:]
+    if len(args) != 2 or args[0] != '-cfg_file':
+        sys.exit('Usage: %s -cfg_file config_file_location' % sys.argv[0])
+
     # reads the config file
     config = configparser.ConfigParser()
-    config.read('broker_config_file')
+    config.read(args[1])
 
     this_broker_info = {}
 
@@ -32,7 +39,7 @@ def main():
     broker_logger.setLevel(logging.DEBUG)
 
     console_handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s - %(threadName)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - %(threadName)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s')
     console_handler.setFormatter(formatter)
 
     file_handler = logging.FileHandler(config['config_values']['log_file_name'] + "_" + this_broker_info["id"] + ".log")

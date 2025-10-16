@@ -1,6 +1,6 @@
 from global_data import *
 from tables.context_info_table import ContextInfo
-from utils.message_sender import send_ack, send_context_response
+from utils.message_sender import send_ack
 
 from utils.parsed_message import ParsedMessage
 

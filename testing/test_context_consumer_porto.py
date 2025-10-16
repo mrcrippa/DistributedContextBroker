@@ -29,18 +29,15 @@ def main():
 
     print(dict_as_string)
 
-    consumer_sock.sendto(str.encode(dict_as_string), ("127.0.0.1", 50000))
+    consumer_sock.sendto(str.encode(dict_as_string), ("127.0.0.1", 50002))
 
     dict_as_string = json.dumps(
         {"TYPE": "PING",
-         "BROKER_ADDRESS": "127.0.0.1",
-         "BROKER_PORT": 50000,
-         "BROKER_ID": "test_broker",
          "TIMESTAMP": str(int(time.time() * 1000))})
 
     print(dict_as_string)
 
-    consumer_sock.sendto(str.encode(dict_as_string), ("127.0.0.1", 50000))
+    consumer_sock.sendto(str.encode(dict_as_string), ("127.0.0.1", 50002))
 
     while True:
         received_raw_data, sender_address = consumer_sock.recvfrom(1024)

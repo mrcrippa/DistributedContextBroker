@@ -99,16 +99,8 @@ class ParsedMessage(object):
 
     def is_ping_message_well_formed(self) -> bool:
         """check if a PING message is well-formed"""
-        if self._message_tokens.get("BROKER_ID") is None:
-            return False
-        elif self._message_tokens.get("BROKER_ADDRESS") is None:
-            return False
-        elif self._message_tokens.get("TIMESTAMP") is None or not is_string_valid_int_bigger_than_zero(
+        if self._message_tokens.get("TIMESTAMP") is None or not is_string_valid_int_bigger_than_zero(
                 self._message_tokens.get("TIMESTAMP")):
-            return False
-        elif self._message_tokens.get(
-                "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
-            self._message_tokens.get("BROKER_PORT")):
             return False
 
         return True
@@ -128,8 +120,8 @@ class ParsedMessage(object):
             return False
 
         for neighbor in self._message_tokens.get("BROKER_NEIGHBORS"):
-            if neighbor.get("broker_id") is None or neighbor.get("broker_address") is None or neighbor.get(
-                    "broker_port") is None:
+            if neighbor.get("BROKER_ID") is None or neighbor.get("BROKER_ADDRESS") is None or neighbor.get(
+                    "BROKER_PORT") is None:
                 return False
 
         return True
@@ -230,10 +222,7 @@ class ParsedMessage(object):
         return self._well_formed
 
     def get_token(self, key: str):
-        if key is not None and self._message_tokens.get(key):
-            return self._message_tokens.get(key)
-        else:
-            return None
+        return self._message_tokens.get(key)
 
     def print_message(self) -> str:
         return str(self._message_tokens)
