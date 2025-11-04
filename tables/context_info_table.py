@@ -16,7 +16,7 @@ class ContextInfo(object):
         self._data = rcv_msg.get_token("DATA")
         "timestamp for the end of the time period when the context info is valid"
         "time expressed as milliseconds UNIX time"
-        self._validity_end = int(rcv_msg.get_token("VALIDITY_END"))
+        self._validity_end = rcv_msg.get_token("VALIDITY_END")
 
     def get_object_id(self) -> str:
         """unique identifier for this object"""
@@ -89,7 +89,7 @@ class ContextInfoTable(object):
             key_identifier = str(hash(entity_id + entity_type + scope))
             self._table_lock.acquire()
             if key_identifier in self._table:
-                if broker_clock.current_broker_time() <= int(self._table[key_identifier].get_validity_end()):
+                if broker_clock.current_broker_time() <= self._table[key_identifier].get_validity_end():
                     result = self._table[key_identifier]
             self._table_lock.release()
         return result

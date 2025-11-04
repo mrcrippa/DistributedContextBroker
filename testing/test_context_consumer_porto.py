@@ -27,21 +27,13 @@ def main():
          "ENTITY_TYPE": "location", "SCOPE": "weather_information",
          "DURATION": 60})
 
-    print(dict_as_string)
-
-    consumer_sock.sendto(str.encode(dict_as_string), ("127.0.0.1", 50002))
-
-    dict_as_string = json.dumps(
-        {"TYPE": "PING",
-         "TIMESTAMP": str(int(time.time() * 1000))})
-
-    print(dict_as_string)
+    # print(dict_as_string)
 
     consumer_sock.sendto(str.encode(dict_as_string), ("127.0.0.1", 50002))
 
     while True:
         received_raw_data, sender_address = consumer_sock.recvfrom(1024)
-        print("received_raw_data : " + str(received_raw_data) + " sender_address : " + str(sender_address))
+        # print("received_raw_data : " + str(received_raw_data) + " sender_address : " + str(sender_address))
 
 
 main()

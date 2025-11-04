@@ -16,8 +16,8 @@ def process_update_message(rcv_msg: ParsedMessage, sender_address: tuple, this_b
     ctx_table.remove_entry(ctx_data.get_object_id())
     # add new data
     ctx_table.add_entry(ctx_data)
-    broker_logger.debug("ctx_table : " + ctx_table.print())
-    broker_logger.debug("sub_table : " + sub_table.print())
+    # broker_logger.debug("ctx_table : " + ctx_table.print())
+    # broker_logger.debug("sub_table : " + sub_table.print())
 
     # send an ACK message confirming the update
     send_ack(this_broker_info, "UPDATE", str(sender_address),

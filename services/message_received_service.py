@@ -27,9 +27,10 @@ def message_received_service_task(received_raw_data: str, sender_address: tuple,
                 send_message(dict_as_string, this_broker_info["address"], sender_address)
             case "SUBSCRIBE" | "BROKER_SUBSCRIBE":
                 broker_logger.debug("SUBSCRIBE or BROKER_SUBSCRIBE message received from " + str(sender_address))
+                broker_logger.debug("raw data : " + str(received_raw_data))
                 process_subscription(parsed_msg, this_broker_info)
             case "UPDATE":
-                broker_logger.debug("UPDATE message received from " + str(sender_address))
+                # broker_logger.debug("UPDATE message received from " + str(sender_address))
                 process_update_message(parsed_msg, sender_address, this_broker_info)
             case "BROKER_NEIGHBORS_REQUEST":
                 # BROKER_NEIGHBORS_REQUEST messages get the list of broker neighbors in return
@@ -41,7 +42,7 @@ def message_received_service_task(received_raw_data: str, sender_address: tuple,
                 process_broker_neighbors_response(parsed_msg, this_broker_info)
     else:
         # if the message is not well-formed, send a NACK message
-        broker_logger.debug("received message not well formed from" + str(sender_address))
+        broker_logger.debug("received message not well formed from" + str(sender_address) + "  raw data : " + str(received_raw_data))
         dict_as_string = json.dumps(
             {"TYPE": "NACK", "BROKER_ID": this_broker_info["id"],
              "BROKER_ADDRESS": this_broker_info["address"],

@@ -29,9 +29,9 @@ def send_info(sock, this_address, this_port_nr, broker_address, broker_port):
         {"TYPE": "UPDATE", "PROVIDER_ID": "test_provider_kl",
          "ENTITY_ID": "Kaiserslautern",
          "ENTITY_TYPE": "location", "SCOPE": "weather_information",
-         "VALIDITY_END": str((int(time.time() * 1000)) + 900000), "DATA": msg_data})
+         "VALIDITY_END": int(time.time() * 1000) + 900000, "DATA": msg_data})
 
-    print(dict_as_string)
+    # print(dict_as_string)
 
     sock.sendto(str.encode(dict_as_string), (broker_address, broker_port))
 
@@ -59,7 +59,7 @@ def main():
 
     while True:
         received_raw_data, sender_address = provider_sock.recvfrom(1024)
-        print("received_raw_data : " + str(received_raw_data) + " sender_address : " + str(sender_address))
+        # print("received_raw_data : " + str(received_raw_data) + " sender_address : " + str(sender_address))
 
 
 main()

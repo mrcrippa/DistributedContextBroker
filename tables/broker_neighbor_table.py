@@ -11,10 +11,10 @@ class BrokerNeighborInfo(object):
         Class representing an entry in the broker neighbors table
     """
 
-    def __init__(self, neighbour_id: str, neighbour_address: str, neighbour_port: str):
+    def __init__(self, neighbour_id: str, neighbour_address: str, neighbour_port: int):
         self._broker_neighbour_id = neighbour_id
         self._broker_neighbour_address = neighbour_address
-        self._broker_neighbour_port = int(neighbour_port)
+        self._broker_neighbour_port = neighbour_port
         self._broker_neighbour_online = False
         self._broker_neighbour_last_online_timestamp = 0
 
@@ -113,13 +113,15 @@ class BrokerNeighborTable(object):
         """
         result = []
 
+        broker_logger.debug(self.get_table())
+
+        self._table_lock.acquire()
         to_be_verified = list(self._table.keys())
 
         for entry in checked_brokers:
             if entry in to_be_verified:
                 to_be_verified.remove(entry)
 
-        self._table_lock.acquire()
         while to_be_verified:
             selected = random.choice(to_be_verified)
             to_be_verified.remove(selected)
@@ -137,7 +139,7 @@ class BrokerNeighborTable(object):
             if entry.is_broker_neighbour_online():
                 temp_dict = {"BROKER_ID": entry.get_broker_neighbour_id(),
                              "BROKER_ADDRESS": entry.get_broker_neighbour_address(),
-                             "BROKER_PORT": str(entry.get_broker_neighbour_port())}
+                             "BROKER_PORT": entry.get_broker_neighbour_port()}
                 temp_list.append(temp_dict)
         self._table_lock.release()
 

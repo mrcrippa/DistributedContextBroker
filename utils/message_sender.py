@@ -42,6 +42,6 @@ def send_context_response(this_broker_info: dict,
          "BROKER_PORT": this_broker_info["port"], "PROVIDER_ID": ctx_info.get_provider_id(),
          "ENTITY_ID": ctx_info.get_entity_id(),
          "ENTITY_TYPE": ctx_info.get_entity_type(), "SCOPE": ctx_info.get_scope(),
-         "VALIDITY_END": str(ctx_info.get_validity_end()), "DATA": ctx_info.get_data()})
+         "VALIDITY_END": ctx_info.get_validity_end(), "DATA": ctx_info.get_data()})
 
     send_message(dict_as_string, this_broker_info["address"], sender_address)

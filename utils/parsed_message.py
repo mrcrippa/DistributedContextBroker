@@ -8,16 +8,6 @@ message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_RESPO
                     "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE", "BROKER_SUBSCRIBE"}
 
 
-def is_string_valid_int_bigger_than_zero(value: str) -> bool:
-    """check if a string is a valid integer bigger than zero"""
-    try:
-        if int(value) <= 0:
-            return False
-    except ValueError:
-        return False
-    return True
-
-
 class ParsedMessage(object):
     """
     Class representing a message received by the Broker
@@ -72,8 +62,7 @@ class ParsedMessage(object):
         elif self._message_tokens.get("REASON") is None:
             return False
         elif self._message_tokens.get(
-                "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
-            self._message_tokens.get("BROKER_PORT")):
+                "BROKER_PORT") is None or self._message_tokens.get("BROKER_PORT") <= 0:
             return False
 
         return True
@@ -91,16 +80,14 @@ class ParsedMessage(object):
         elif self._message_tokens.get("REASON") is None:
             return False
         elif self._message_tokens.get(
-                "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
-            self._message_tokens.get("BROKER_PORT")):
+                "BROKER_PORT") is None or self._message_tokens.get("BROKER_PORT") <= 0:
             return False
 
         return True
 
     def is_ping_message_well_formed(self) -> bool:
         """check if a PING message is well-formed"""
-        if self._message_tokens.get("TIMESTAMP") is None or not is_string_valid_int_bigger_than_zero(
-                self._message_tokens.get("TIMESTAMP")):
+        if self._message_tokens.get("TIMESTAMP") is None or self._message_tokens.get("TIMESTAMP") <= 0:
             return False
 
         return True
@@ -115,8 +102,7 @@ class ParsedMessage(object):
                 self._message_tokens.get("BROKER_NEIGHBORS")).__name__ != "list":
             return False
         elif self._message_tokens.get(
-                "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
-            self._message_tokens.get("BROKER_PORT")):
+                "BROKER_PORT") is None or self._message_tokens.get("BROKER_PORT") <= 0:
             return False
 
         for neighbor in self._message_tokens.get("BROKER_NEIGHBORS"):
@@ -133,8 +119,7 @@ class ParsedMessage(object):
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
             return False
         elif self._message_tokens.get(
-                "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
-            self._message_tokens.get("BROKER_PORT")):
+                "BROKER_PORT") is None or self._message_tokens.get("BROKER_PORT") <= 0:
             return False
 
         return True
@@ -151,11 +136,9 @@ class ParsedMessage(object):
         elif self._message_tokens.get("SUBSCRIBER_ADDRESS") is None:
             return False
         elif self._message_tokens.get(
-                "SUBSCRIBER_PORT") is None or not is_string_valid_int_bigger_than_zero(
-            self._message_tokens.get("SUBSCRIBER_PORT")):
+                "SUBSCRIBER_PORT") is None or self._message_tokens.get("SUBSCRIBER_PORT") <= 0:
             return False
-        elif self._message_tokens.get("DURATION") is None or not is_string_valid_int_bigger_than_zero(
-                self._message_tokens.get("DURATION")):
+        elif self._message_tokens.get("DURATION") is None or self._message_tokens.get("DURATION") <= 0:
             return False
 
         return True
@@ -169,8 +152,7 @@ class ParsedMessage(object):
         elif self._message_tokens.get("BROKER_ADDRESS") is None:
             return False
         elif self._message_tokens.get(
-                "BROKER_PORT") is None or not is_string_valid_int_bigger_than_zero(
-            self._message_tokens.get("BROKER_PORT")):
+                "BROKER_PORT") is None or self._message_tokens.get("BROKER_PORT") <= 0:
             return False
         elif self._message_tokens.get("ENTITY_ID") is None:
             return False
@@ -181,14 +163,11 @@ class ParsedMessage(object):
         elif self._message_tokens.get("SUBSCRIBER_ADDRESS") is None:
             return False
         elif self._message_tokens.get(
-                "SUBSCRIBER_PORT") is None or not is_string_valid_int_bigger_than_zero(
-            self._message_tokens.get("SUBSCRIBER_PORT")):
+                "SUBSCRIBER_PORT") is None or self._message_tokens.get("SUBSCRIBER_PORT") <= 0:
             return False
-        elif self._message_tokens.get("DURATION") is None or not is_string_valid_int_bigger_than_zero(
-                self._message_tokens.get("DURATION")):
+        elif self._message_tokens.get("DURATION") is None or self._message_tokens.get("DURATION") <= 0:
             return False
-        elif self._message_tokens.get("MAXIMUM_HOPS") is None or not is_string_valid_int_bigger_than_zero(
-                self._message_tokens.get("MAXIMUM_HOPS")):
+        elif self._message_tokens.get("MAX_HOPS") is None or self._message_tokens.get("MAX_HOPS") < 0:
             return False
         elif self._message_tokens.get("CHECKED_BROKERS") is None or type(
                 self._message_tokens.get("CHECKED_BROKERS")).__name__ != "list":
@@ -208,12 +187,11 @@ class ParsedMessage(object):
             return False
         elif self._message_tokens.get("DATA") is None:
             return False
-        elif self._message_tokens.get("VALIDITY_END") is None or not is_string_valid_int_bigger_than_zero(
-                self._message_tokens.get("VALIDITY_END")):
+        elif self._message_tokens.get("VALIDITY_END") is None or self._message_tokens.get("VALIDITY_END") <= 0:
             return False
 
         # validity end should come after the current broker time
-        if not (broker_clock.current_broker_time() < int(self._message_tokens.get("VALIDITY_END"))):
+        if not (broker_clock.current_broker_time() < self._message_tokens.get("VALIDITY_END")):
             return False
 
         return True

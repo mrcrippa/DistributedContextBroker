@@ -4,7 +4,6 @@ import sys
 import threading
 import uuid
 from logging.handlers import QueueHandler, QueueListener
-from pathlib import Path
 from threading import Thread
 
 from global_data import broker_neighbors
@@ -67,7 +66,7 @@ def main():
         socket_connected = True
 
     this_broker_info["address"] = config['config_values']['host_broker_ip']
-    this_broker_info["port"] = str(port_broker_nr)
+    this_broker_info["port"] = port_broker_nr
 
     # get list of start neighbours
     # print(config['config_values']['start_neighbours'])

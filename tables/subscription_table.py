@@ -16,9 +16,9 @@ class Subscription(object):
         self._entity_type = rcv_msg.get_token("ENTITY_TYPE")
         self._scope = rcv_msg.get_token("SCOPE")
         self._subscriber_address = rcv_msg.get_token("SUBSCRIBER_ADDRESS")
-        self._subscriber_port = int(rcv_msg.get_token("SUBSCRIBER_PORT"))
-        "for how many seconds should this subscription be valid"
-        self._duration = int(rcv_msg.get_token("DURATION"))
+        self._subscriber_port = rcv_msg.get_token("SUBSCRIBER_PORT")
+        "for how many seconds should this subscription be valid - integer"
+        self._duration = rcv_msg.get_token("DURATION")
 
     def get_object_id(self) -> str:
         """unique identifier for this object"""
@@ -41,15 +41,15 @@ class Subscription(object):
         return self._subscriber_port
 
     def get_duration(self) -> int:
-        """for how many seconds should this subscription be valid"""
+        """for how many seconds should this subscription be valid - integer"""
         return self._duration
 
     def print(self) -> str:
         contents = {"SUBSCRIPTION_ID": self.get_object_id(),
                     "ENTITY_ID": self.get_entity_id(), "ENTITY_TYPE": self.get_entity_type(), "SCOPE": self.get_scope(),
                     "SUBSCRIBER_ADDRESS": self.get_subscriber_address(),
-                    "SUBSCRIBER_PORT": str(self.get_subscriber_port()),
-                    "DURATION": str(self.get_duration())}
+                    "SUBSCRIBER_PORT": self.get_subscriber_port(),
+                    "DURATION": self.get_duration()}
 
         return str(contents)
 
