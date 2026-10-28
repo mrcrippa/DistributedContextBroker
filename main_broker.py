@@ -6,16 +6,15 @@ import uuid
 from logging.handlers import QueueHandler, QueueListener
 from threading import Thread
 
-from global_data import broker_neighbors
-from services.message_received_service import message_received_service_task
-from services.neighbour_service import neighbour_broker_live_check
-from tables.broker_neighbor_table import BrokerNeighborInfo
-from utils.message_sender import *
-from utils.parsed_message import *
+from global_data import broker_neighbors, this_broker_info
+from message_exchange.message_received import message_received_service_task
+from neighbor_management.neighbour_service import neighbour_broker_live_check
+from neighbor_management.broker_neighbor_table import BrokerNeighborInfo
+from message_exchange.message_sender import *
+from message_exchange.broker_messages import *
 
 
 def main():
-
     args = sys.argv[1:]
     if len(args) != 2 or args[0] != '-cfg_file':
         sys.exit('Usage: %s -cfg_file config_file_location' % sys.argv[0])
@@ -23,8 +22,6 @@ def main():
     # reads the config file
     config = configparser.ConfigParser()
     config.read(args[1])
-
-    this_broker_info = {}
 
     if config['config_values']['broker_id'] == '0':
         this_broker_info["id"] = str(uuid.uuid4()).replace('-', '')[:8]
@@ -38,7 +35,8 @@ def main():
     broker_logger.setLevel(logging.DEBUG)
 
     console_handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s - %(threadName)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s')
+    formatter = logging.Formatter(
+        '%(asctime)s - %(threadName)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s')
     console_handler.setFormatter(formatter)
 
     file_handler = logging.FileHandler(config['config_values']['log_file_name'] + "_" + this_broker_info["id"] + ".log")
@@ -68,7 +66,7 @@ def main():
     this_broker_info["address"] = config['config_values']['host_broker_ip']
     this_broker_info["port"] = port_broker_nr
 
-    # get list of start neighbours
+    # get list of start neighbors
     # print(config['config_values']['start_neighbours'])
     start_neighbours = json.loads(config['config_values']['start_neighbours'])
 
@@ -77,8 +75,8 @@ def main():
         neighbor.set_broker_neighbour_online(True)
         broker_neighbors.add_entry(neighbor)
 
-    # start the neighbour live check regular timer
-    threading.Timer(1, neighbour_broker_live_check,[this_broker_info]).start()
+    # start the neighbor live check regular timer
+    threading.Timer(1, neighbour_broker_live_check, [this_broker_info]).start()
 
     # start the time correction with ntp regular timer
     broker_clock.time_correction_with_ntp()
@@ -86,7 +84,8 @@ def main():
     while True:
         received_raw_data, sender_address = broker_sock.recvfrom(1024)
         Thread(target=message_received_service_task,
-               args=[received_raw_data, sender_address, this_broker_info]).start()
+               args=[received_raw_data, sender_address]).start()
 
 
-main()
+if __name__ == "__main__":
+    main()

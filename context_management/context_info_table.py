@@ -1,22 +1,23 @@
 import threading
 
 from global_data import *
-from utils.parsed_message import ParsedMessage
+from message_exchange.broker_messages import BrokerMessage
+from message_exchange.update_message import UpdateMessage
 
 
 class ContextInfo(object):
     """Class representing an entry in the context info table"""
 
-    def __init__(self, rcv_msg: ParsedMessage):
+    def __init__(self, rcv_msg: UpdateMessage):
         self._timer_thread = None
-        self._provider_id = rcv_msg.get_token("PROVIDER_ID")
-        self._entity_id = rcv_msg.get_token("ENTITY_ID")
-        self._entity_type = rcv_msg.get_token("ENTITY_TYPE")
-        self._scope = rcv_msg.get_token("SCOPE")
-        self._data = rcv_msg.get_token("DATA")
-        "timestamp for the end of the time period when the context info is valid"
-        "time expressed as milliseconds UNIX time"
-        self._validity_end = rcv_msg.get_token("VALIDITY_END")
+        self._provider_id = rcv_msg.provider_id
+        self._entity_id = rcv_msg.entity_id
+        self._entity_type = rcv_msg.entity_type
+        self._scope = rcv_msg.scope
+        self._data = rcv_msg.data
+        # timestamp for the end of the time period when the context info is valid
+        # time expressed as milliseconds UNIX time
+        self._validity_end = rcv_msg.validity_end
 
     def get_object_id(self) -> str:
         """unique identifier for this object"""

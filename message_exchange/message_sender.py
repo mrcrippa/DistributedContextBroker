@@ -2,8 +2,9 @@ import json
 import random
 import socket
 
-from global_data import broker_logger
-from tables.context_info_table import ContextInfo
+from global_data import broker_logger, this_broker_info
+from context_management.context_info_table import ContextInfo
+
 
 def send_message(message: str, broker_address: str, sender_address: tuple):
     """sends message to sender_address using UDP"""
@@ -22,19 +23,8 @@ def send_message(message: str, broker_address: str, sender_address: tuple):
     except socket.error as e:
         broker_logger.error(e)
 
-def send_ack(this_broker_info: dict, operation: str,
-                     requester_address: str, reason: str, sender_address: tuple):
-    """sends an ACK message - JSON"""
-    dict_as_string = json.dumps(
-        {"TYPE": "ACK", "BROKER_ID": this_broker_info["id"],
-         "BROKER_ADDRESS": this_broker_info["address"],
-         "BROKER_PORT": this_broker_info["port"], "OPERATION": operation,
-         "REQUESTER": requester_address, "REASON": reason})
 
-    send_message(dict_as_string, this_broker_info["address"], sender_address)
-
-def send_context_response(this_broker_info: dict,
-                                  ctx_info: ContextInfo, sender_address: tuple):
+def send_context_response(ctx_info: ContextInfo, sender_address: tuple):
     """sends a CONTEXT_RESPONSE message - JSON"""
     dict_as_string = json.dumps(
         {"TYPE": "CONTEXT_RESPONSE", "BROKER_ID": this_broker_info["id"],

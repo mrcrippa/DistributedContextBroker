@@ -2,12 +2,13 @@ import json
 
 from global_data import sub_table, broker_logger, ctx_table, \
     broker_neighbors
-from tables.subscription_table import Subscription
-from utils.message_sender import send_context_response, send_ack, send_message
-from utils.parsed_message import ParsedMessage
+from message_exchange.ack_message import ACKMessage
+from subscriptions.subscription_table import Subscription
+from message_exchange.message_sender import send_context_response, send_ack, send_message
+from message_exchange.broker_messages import BrokerMessage
 
 
-def process_subscription(rcv_msg: ParsedMessage, this_broker_info: dict):
+def process_subscription(rcv_msg: BrokerMessage, this_broker_info: dict):
     """adds a subscription to the subscription table, received message was already verified and it's well-formed"""
 
     # check if there is already data in the context info table matching the subscription
@@ -30,10 +31,16 @@ def process_subscription(rcv_msg: ParsedMessage, this_broker_info: dict):
         # broker_logger.debug("sub_table : " + sub_table.print())
 
         # notify the subscriber that the subscription was successfully done, sending an ACK message
-        send_ack(this_broker_info, "SUBSCRIBE",
-                 str((sub.get_subscriber_address(), sub.get_subscriber_port())),
-                 "Consumer subscribed to [ " + sub.get_entity_id() + " , " + sub.get_entity_type() + " , " + sub.get_scope() + " ]",
-                 (sub.get_subscriber_address(), sub.get_subscriber_port()))
+        ack_msg = ACKMessage(
+            broker_id=this_broker_info["id"], broker_address=this_broker_info["address"],
+            broker_port=this_broker_info["port"], requested_operation="SUBSCRIBE",
+            requester_address=sub.get_subscriber_address(), requester_port=sub.get_subscriber_port(),
+            information=f"Consumer subscribed to [{sub.get_entity_id()},{sub.get_entity_type()},{sub.get_scope()}]",
+            well_formed=True
+        )
+
+        send_message(ack_msg.as_json(), this_broker_info["address"],
+                     (ack_msg.requester_address, ack_msg.requester_port))
 
         # send data to the subscriber
         send_context_response(this_broker_info, current_ctx_info,

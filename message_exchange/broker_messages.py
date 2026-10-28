@@ -1,5 +1,6 @@
 import json
 import logging
+from dataclasses import dataclass
 
 from global_data import broker_clock
 
@@ -8,22 +9,30 @@ message_type_set = {"ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_RESPO
                     "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE", "BROKER_SUBSCRIBE"}
 
 
-class ParsedMessage(object):
+
+
+
+class BrokerMessage(object):
     """
-    Class representing a message received by the Broker
-    The raw message will be parsed and verified
-    Only well-formed messages should be used
+    Class representing a message accepted by the Broker.
+
+    The accepted raw messages are valid JSON strings that will be converted into Python dicts.
+
+    One of the keys of this dict must be "TYPE", which has the following accepted values:
+    "ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_RESPONSE",
+    "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE", "BROKER_SUBSCRIBE"
+
+    This class will be used as a parent class for each type of Broker message.
     """
 
-    def __init__(self, message_raw_data):
+    def __init__(self, raw_data_from_socket):
 
         self._message_tokens = {}
         self._well_formed = False
 
-        # the message strings are in JSON
-        # check if the message is valid JSON
+        # check if the raw data is valid JSON string
         try:
-            self._message_tokens = json.loads(message_raw_data)
+            self._message_tokens = json.loads(raw_data_from_socket)
         except json.JSONDecodeError:
             logging.error("Message decode error")
 
@@ -32,16 +41,10 @@ class ParsedMessage(object):
         if msg_type is not None and msg_type in message_type_set:
             # verify the message further based on the type
             match msg_type:
-                case "ACK":
-                    self._well_formed = self.is_ack_message_well_formed()
-                case "NACK":
-                    self._well_formed = self.is_nack_message_well_formed()
-                case "PING":  #
-                    self._well_formed = self.is_ping_message_well_formed()
+
                 case "SUBSCRIBE":
                     self._well_formed = self.is_sub_message_well_formed()
-                case "UPDATE":
-                    self._well_formed = self.is_update_message_well_formed()
+
                 case "BROKER_NEIGHBORS_REQUEST":
                     self._well_formed = self.is_broker_neighbors_request_message_well_formed()
                 case "BROKER_NEIGHBORS_RESPONSE":
@@ -49,48 +52,6 @@ class ParsedMessage(object):
                 case "BROKER_SUBSCRIBE":
                     self._well_formed = self.is_broker_subscribe_message_well_formed
 
-    def is_ack_message_well_formed(self) -> bool:
-        """check if an ACK message is well-formed"""
-        if self._message_tokens.get("BROKER_ID") is None:
-            return False
-        elif self._message_tokens.get("BROKER_ADDRESS") is None:
-            return False
-        elif self._message_tokens.get("OPERATION") is None:
-            return False
-        elif self._message_tokens.get("REQUESTER") is None:
-            return False
-        elif self._message_tokens.get("REASON") is None:
-            return False
-        elif self._message_tokens.get(
-                "BROKER_PORT") is None or self._message_tokens.get("BROKER_PORT") <= 0:
-            return False
-
-        return True
-
-    def is_nack_message_well_formed(self) -> bool:
-        """check if a NACK message is well-formed"""
-        if self._message_tokens.get("BROKER_ID") is None:
-            return False
-        elif self._message_tokens.get("BROKER_ADDRESS") is None:
-            return False
-        elif self._message_tokens.get("OPERATION") is None:
-            return False
-        elif self._message_tokens.get("REQUESTER") is None:
-            return False
-        elif self._message_tokens.get("REASON") is None:
-            return False
-        elif self._message_tokens.get(
-                "BROKER_PORT") is None or self._message_tokens.get("BROKER_PORT") <= 0:
-            return False
-
-        return True
-
-    def is_ping_message_well_formed(self) -> bool:
-        """check if a PING message is well-formed"""
-        if self._message_tokens.get("TIMESTAMP") is None or self._message_tokens.get("TIMESTAMP") <= 0:
-            return False
-
-        return True
 
     def is_broker_neighbors_response_message_well_formed(self) -> bool:
         """check if a BROKER_NEIGHBORS_RESPONSE message is well-formed"""
@@ -175,26 +136,7 @@ class ParsedMessage(object):
 
         return True
 
-    def is_update_message_well_formed(self) -> bool:
-        """check if a UPDATE message is well-formed"""
-        if self._message_tokens.get("ENTITY_ID") is None:
-            return False
-        elif self._message_tokens.get("ENTITY_TYPE") is None:
-            return False
-        elif self._message_tokens.get("SCOPE") is None:
-            return False
-        elif self._message_tokens.get("PROVIDER_ID") is None:
-            return False
-        elif self._message_tokens.get("DATA") is None:
-            return False
-        elif self._message_tokens.get("VALIDITY_END") is None or self._message_tokens.get("VALIDITY_END") <= 0:
-            return False
 
-        # validity end should come after the current broker time
-        if not (broker_clock.current_broker_time() < self._message_tokens.get("VALIDITY_END")):
-            return False
-
-        return True
 
     def is_well_formed(self) -> bool:
         return self._well_formed
@@ -204,3 +146,7 @@ class ParsedMessage(object):
 
     def print_message(self) -> str:
         return str(self._message_tokens)
+
+class PingMessage(BrokerMessage):
+    def __init__(self, raw_data_from_socket):
+        super().__init__(raw_data_from_socket)

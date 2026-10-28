@@ -1,9 +1,39 @@
-########################
-DOING NOW
+code review
+    service
+        neighbour
+        subscribe
+        update service
+    tables
+        cotext
+        subscription
+        broker neighbour
+    testing
+        consumer porto
+        provider kaiserslautern
+        provider porto
+    util
+        message sender
+        parsed message
+    broker config
+    main
 
-debug and test
-review and document
-package for daniel
-
+comments
+    service
+        neighbour
+        subscribe
+        update service
+    tables
+        cotext
+        subscription
+        broker neighbour
+    testing
+        consumer porto
+        provider kaiserslautern
+        provider porto
+    util
+        message sender
+        parsed message
+    broker config
+    main
 
 

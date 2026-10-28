@@ -3,7 +3,7 @@ import random
 import threading
 
 from global_data import broker_clock, broker_logger
-from utils.message_sender import send_message
+from message_exchange.message_sender import send_message
 
 
 class BrokerNeighborInfo(object):
@@ -95,7 +95,7 @@ class BrokerNeighborTable(object):
         return result
 
     def check_table_for_potentially_offline_brokers(self, this_broker_info: dict):
-        """checks which neighbours might be potentially offline, and sends them a neighbours_request"""
+        """checks which neighbors might be potentially offline, and sends them a neighbours_request"""
         self._table_lock.acquire()
         msg_string = json.dumps(
             {"TYPE": "BROKER_NEIGHBORS_REQUEST", "BROKER_ID": this_broker_info["id"],

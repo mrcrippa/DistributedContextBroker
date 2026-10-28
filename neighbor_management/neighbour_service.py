@@ -1,24 +1,24 @@
 import json
 import threading
 
-from global_data import *
-from tables.broker_neighbor_table import BrokerNeighborInfo
-from utils.message_sender import send_message
-from utils.parsed_message import ParsedMessage
+from global_data import broker_neighbors, this_broker_info
+from neighbor_management.broker_neighbor_table import BrokerNeighborInfo
+from message_exchange.message_sender import send_message
+from message_exchange.broker_messages import BrokerMessage
 
 
-def neighbour_broker_live_check(this_broker_info: dict):
+def neighbour_broker_live_check():
 
-    # checking if any of your neighbours is offline, by requesting their list of neighbours
+    # checking if any of your neighbors is offline, by requesting their list of neighbors
     broker_neighbors.check_table_for_potentially_offline_brokers(this_broker_info)
 
     threading.Timer(15, neighbour_broker_live_check,
                     [this_broker_info]).start()
 
 
-def process_broker_neighbors_response(rcv_msg: ParsedMessage, this_broker_info: dict):
+def process_broker_neighbors_response(rcv_msg: BrokerMessage):
 
-    # add responder broker if not already in the broker neighbour table
+    # add responder broker if not already in the broker neighbor table
     searched_neighbour = broker_neighbors.search_entry(rcv_msg.get_token("BROKER_ID"))
 
     if searched_neighbour is None:
@@ -29,7 +29,7 @@ def process_broker_neighbors_response(rcv_msg: ParsedMessage, this_broker_info: 
     else:
         searched_neighbour.set_broker_neighbour_online(True)
 
-    # insert neighbours in broker neighbours table
+    # insert neighbors in broker neighbors table
     for entry in rcv_msg.get_token("BROKER_NEIGHBORS"):
         if entry.get("BROKER_ID") == this_broker_info.get("id"):
             continue
@@ -42,7 +42,7 @@ def process_broker_neighbors_response(rcv_msg: ParsedMessage, this_broker_info: 
             broker_neighbors.set_entry_online(entry.get("BROKER_ID"))
 
 
-def process_broker_neighbors_request(rcv_msg: ParsedMessage, this_broker_info: dict):
+def process_broker_neighbors_request(rcv_msg: BrokerMessage):
     # send a response to the requester
     msg_string = json.dumps(
         {"TYPE": "BROKER_NEIGHBORS_RESPONSE", "BROKER_ID": this_broker_info["id"],
@@ -52,8 +52,8 @@ def process_broker_neighbors_request(rcv_msg: ParsedMessage, this_broker_info: d
 
     send_message(msg_string, this_broker_info["address"], (rcv_msg.get_token("BROKER_ADDRESS"), int(rcv_msg.get_token("BROKER_PORT"))))
 
-    # if the requester broker is already in the neighbour broker, update its online status
-    # if not, then insert into the neighbour broker table
+    # if the requester broker is already in the neighbor broker, update its online status
+    # if not, then insert into the neighbor broker table
     searched_neighbour = broker_neighbors.search_entry(rcv_msg.get_token("BROKER_ID"))
 
     if searched_neighbour is None:

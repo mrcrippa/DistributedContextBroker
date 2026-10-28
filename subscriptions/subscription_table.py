@@ -1,9 +1,9 @@
 import threading
 
 from global_data import broker_logger
-from tables.context_info_table import ContextInfo
-from utils.message_sender import send_context_response
-from utils.parsed_message import ParsedMessage
+from context_management.context_info_table import ContextInfo
+from message_exchange.message_sender import send_context_response
+from message_exchange.broker_messages import BrokerMessage
 
 
 class Subscription(object):
@@ -11,7 +11,7 @@ class Subscription(object):
         Class representing an entry in the subscription table
     """
 
-    def __init__(self, rcv_msg: ParsedMessage):
+    def __init__(self, rcv_msg: BrokerMessage):
         self._entity_id = rcv_msg.get_token("ENTITY_ID")
         self._entity_type = rcv_msg.get_token("ENTITY_TYPE")
         self._scope = rcv_msg.get_token("SCOPE")
