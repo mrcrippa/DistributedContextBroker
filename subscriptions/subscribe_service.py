@@ -1,14 +1,21 @@
 import json
 
+from broker_messages.ack_message import AckMessage
+from broker_messages.broker_subscribe_message import BrokerSubscribeMessage
+from broker_messages.context_response_message import ContextResponseMessage
+from broker_messages.subscribe_message import SubscribeMessage
 from global_data import sub_table, broker_logger, ctx_table, \
-    broker_neighbors
-from message_exchange.ack_message import ACKMessage
+    broker_neighbors, this_broker_info
+from message_exchange.message_sender import send_message
 from subscriptions.subscription_table import Subscription
-from message_exchange.message_sender import send_context_response, send_ack, send_message
-from message_exchange.broker_messages import BrokerMessage
 
 
-def process_subscription(rcv_msg: BrokerMessage, this_broker_info: dict):
+def process_broker_subscription_msg(rcv_msg: BrokerSubscribeMessage):
+    pass
+
+
+
+def process_subscribe_msg(rcv_msg: SubscribeMessage):
     """adds a subscription to the subscription table, received message was already verified and it's well-formed"""
 
     # check if there is already data in the context info table matching the subscription
@@ -18,24 +25,32 @@ def process_subscription(rcv_msg: BrokerMessage, this_broker_info: dict):
                                               rcv_msg.get_token("SCOPE"))
 
     # create subscription object
+
+    # self._entity_id = rcv_msg.get_token("ENTITY_ID")
+    # self._entity_type = rcv_msg.get_token("ENTITY_TYPE")
+    # self._scope = rcv_msg.get_token("SCOPE")
+    # self._subscriber_address = rcv_msg.get_token("SUBSCRIBER_ADDRESS")
+    # self._subscriber_port = rcv_msg.get_token("SUBSCRIBER_PORT")
+    # "for how many seconds should this subscription be valid - integer > 0"
+    # self._duration = rcv_msg.get_token("DURATION")
     sub = Subscription(rcv_msg)
 
     if current_ctx_info is not None:
 
         # remove any subscription already there, since this will replace it
         # if no subscription exists, then nothing happens
-        sub_table.remove_entry(sub.get_object_id())
+        sub_table.remove_entry(sub.object_id)
         # add new subscription
         sub_table.add_entry(sub)
 
         # broker_logger.debug("sub_table : " + sub_table.print())
 
         # notify the subscriber that the subscription was successfully done, sending an ACK message
-        ack_msg = ACKMessage(
+        ack_msg = AckMessage(
             broker_id=this_broker_info["id"], broker_address=this_broker_info["address"],
             broker_port=this_broker_info["port"], requested_operation="SUBSCRIBE",
-            requester_address=sub.get_subscriber_address(), requester_port=sub.get_subscriber_port(),
-            information=f"Consumer subscribed to [{sub.get_entity_id()},{sub.get_entity_type()},{sub.get_scope()}]",
+            requester_address=sub.subscriber_address, requester_port=sub.subscriber_port,
+            information=f"Consumer subscribed to [{sub.entity_id},{sub.entity_type},{sub.scope}]",
             well_formed=True
         )
 
@@ -43,8 +58,21 @@ def process_subscription(rcv_msg: BrokerMessage, this_broker_info: dict):
                      (ack_msg.requester_address, ack_msg.requester_port))
 
         # send data to the subscriber
-        send_context_response(this_broker_info, current_ctx_info,
-                              (sub.get_subscriber_address(), sub.get_subscriber_port()))
+        context_response_msg = ContextResponseMessage(broker_id=this_broker_info["id"],
+                                                      broker_address=this_broker_info["address"],
+                                                      broker_port=this_broker_info["port"],
+                                                      entity_id=current_ctx_info.entity_id,
+                                                      entity_type=current_ctx_info.entity_type,
+                                                      provider_id=current_ctx_info.provider_id,
+                                                      provider_address=current_ctx_info.provider_address,
+                                                      provider_port=current_ctx_info.provider_port,
+                                                      scope=current_ctx_info.scope,
+                                                      data=current_ctx_info.data,
+                                                      validity_end=current_ctx_info.validity_end,
+                                                      well_formed=True)
+
+        send_message(context_response_msg.as_json(), this_broker_info["address"],
+                     (sub.subscriber_address, sub.subscriber_port))
 
     else:
 

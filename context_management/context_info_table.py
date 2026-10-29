@@ -1,53 +1,32 @@
+import json
 import threading
+from dataclasses import dataclass, field
 
 from global_data import *
-from message_exchange.broker_messages import BrokerMessage
-from message_exchange.update_message import UpdateMessage
 
 
+@dataclass
 class ContextInfo(object):
     """Class representing an entry in the context info table"""
 
-    def __init__(self, rcv_msg: UpdateMessage):
-        self._timer_thread = None
-        self._provider_id = rcv_msg.provider_id
-        self._entity_id = rcv_msg.entity_id
-        self._entity_type = rcv_msg.entity_type
-        self._scope = rcv_msg.scope
-        self._data = rcv_msg.data
-        # timestamp for the end of the time period when the context info is valid
-        # time expressed as milliseconds UNIX time
-        self._validity_end = rcv_msg.validity_end
+    provider_id: str
+    provider_address : str
+    provider_port: int
+    entity_id: str
+    entity_type: str
+    scope: str
+    data: str
+    # timestamp for the end of the time period when the context info is valid
+    # time expressed as milliseconds UNIX time
+    validity_end: int
+    # unique identifier for this object
+    object_id: str = field(init=False)
 
-    def get_object_id(self) -> str:
-        """unique identifier for this object"""
-        return str(hash(self._entity_id + self._entity_type + self._scope))
+    def __post_init__(self):
+        self.object_id = str(hash(self.entity_id + self.entity_type + self.scope))
 
-    def get_provider_id(self) -> str:
-        return self._provider_id
-
-    def get_entity_id(self) -> str:
-        return self._entity_id
-
-    def get_entity_type(self) -> str:
-        return self._entity_type
-
-    def get_scope(self) -> str:
-        return self._scope
-
-    def get_data(self) -> str:
-        return self._data
-
-    def get_validity_end(self) -> int:
-        """value for the end of the time period when the context info is valid, time expressed as milliseconds UNIX time """
-        return self._validity_end
-
-    def print(self) -> str:
-        contents = {"CONTEXT_INFO_ID": self.get_object_id(), "PROVIDER_ID": self.get_provider_id(),
-                    "ENTITY_ID": self.get_entity_id(), "ENTITY_TYPE": self.get_entity_type(), "SCOPE": self.get_scope(),
-                    "DATA": self.get_data(), "VALIDITY_END": self.get_validity_end()}
-
-        return str(contents)
+    def as_json(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
 class ContextInfoTable(object):
@@ -65,13 +44,13 @@ class ContextInfoTable(object):
     def add_entry(self, context_info_object: ContextInfo):
         if context_info_object is not None:
             self._table_lock.acquire()
-            self._table[context_info_object.get_object_id()] = context_info_object
-            valid_interval_time = (context_info_object.get_validity_end() - broker_clock.current_broker_time()) / 1000
-            self._entry_timers[context_info_object.get_object_id()] = threading.Timer(valid_interval_time,
+            self._table[context_info_object.object_id] = context_info_object
+            valid_interval_time = (context_info_object.validity_end - broker_clock.current_broker_time()) / 1000
+            self._entry_timers[context_info_object.object_id] = threading.Timer(valid_interval_time,
                                                                                       ctx_timer_thread,
-                                                                                      [context_info_object.get_object_id(),
+                                                                                      [context_info_object.object_id,
                                                                                        self])
-            self._entry_timers[context_info_object.get_object_id()].start()
+            self._entry_timers[context_info_object.object_id].start()
             self._table_lock.release()
 
     def remove_entry(self, entry_id: str):
@@ -90,7 +69,7 @@ class ContextInfoTable(object):
             key_identifier = str(hash(entity_id + entity_type + scope))
             self._table_lock.acquire()
             if key_identifier in self._table:
-                if broker_clock.current_broker_time() <= self._table[key_identifier].get_validity_end():
+                if broker_clock.current_broker_time() <= self._table[key_identifier].validity_end:
                     result = self._table[key_identifier]
             self._table_lock.release()
         return result
@@ -99,7 +78,7 @@ class ContextInfoTable(object):
         result = ""
         self._table_lock.acquire()
         for entry in self._table.values():
-            result += '\n' + entry.print() + " ||"
+            result += '\n' + entry + " ||"
         self._table_lock.release()
         return result
 

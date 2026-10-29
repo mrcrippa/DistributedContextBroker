@@ -1,119 +1,101 @@
-import json
 import random
 import threading
+from dataclasses import dataclass
 
-from global_data import broker_clock, broker_logger
+from broker_messages.broker_neighbors_request_message import BrokerNeighborsRequestMessage
+from global_data import broker_clock, broker_logger, this_broker_info
 from message_exchange.message_sender import send_message
 
 
+@dataclass
 class BrokerNeighborInfo(object):
     """
         Class representing an entry in the broker neighbors table
     """
 
-    def __init__(self, neighbour_id: str, neighbour_address: str, neighbour_port: int):
-        self._broker_neighbour_id = neighbour_id
-        self._broker_neighbour_address = neighbour_address
-        self._broker_neighbour_port = neighbour_port
-        self._broker_neighbour_online = False
-        self._broker_neighbour_last_online_timestamp = 0
+    broker_neighbor_id: str
+    broker_neighbor_address: str
+    broker_neighbor_port: int
+    # timestamp of the last contact with this neighbor
+    # use 0 for neighbor considered offline, != 0 for neighbor considered online
+    broker_neighbor_last_online_timestamp: int
 
-    def set_broker_neighbour_online(self, status: bool):
-        self._broker_neighbour_online = status
-        if status:
-            self._broker_neighbour_last_online_timestamp = broker_clock.current_broker_time()
-        else:
-            self._broker_neighbour_last_online_timestamp = 0
-
-    def is_broker_neighbour_potentially_offline(self) -> bool:
-        if self._broker_neighbour_online:
-            time_elapsed = broker_clock.current_broker_time() - self._broker_neighbour_last_online_timestamp
+    def is_broker_neighbor_potentially_offline(self) -> bool:
+        if self.broker_neighbor_last_online_timestamp:
+            # time elapsed since the last contact with this neighbor
+            time_elapsed = broker_clock.current_broker_time() - self.broker_neighbor_last_online_timestamp
+            # if time_elapsed less than 15s, neighbor is considered online
+            # between 15s and 30s, it's potentially offline
+            # more than 30s, it's considered offline, and set as offline
+            # remember, the questions is if the neighbor is **potentially** offline
             if 15000 < time_elapsed < 30000:
                 return True
-            else:
-                if time_elapsed > 30000:
-                    self.set_broker_neighbour_online(False)
-                return False
+            elif time_elapsed > 30000:
+                self.broker_neighbor_last_online_timestamp = 0
+            return False
         else:
             return False
-
-    def is_broker_neighbour_online(self) -> bool:
-        return self._broker_neighbour_online
-
-    def get_broker_neighbour_id(self) -> str:
-        return self._broker_neighbour_id
-
-    def get_broker_neighbour_address(self) -> str:
-        return self._broker_neighbour_address
-
-    def get_broker_neighbour_port(self) -> int:
-        return self._broker_neighbour_port
-
-    def print_entry(self) -> str:
-        result = "[" + self._broker_neighbour_id + ", " + self._broker_neighbour_address + ", " + str(
-            self._broker_neighbour_port) + ", " + str(self._broker_neighbour_online) + ", " + str(
-            self._broker_neighbour_last_online_timestamp) + "]"
-        return result
 
 
 class BrokerNeighborTable(object):
     """
-    Class representing a table with all information about this broker neighbors
+    Class representing a table with all information about this broker's neighbors
     """
 
     def __init__(self):
         self._table = {}
         self._table_lock = threading.Lock()
 
-    def set_entry_online(self, broker_neighbour_id: str):
-        """ searches for and marks a neighbour as online, if the neighbour does not exist, nothing happens """
+    def set_entry_online(self, broker_neighbor_id: str):
+        """ searches for and marks a neighbor as online, if the neighbor does not exist, nothing happens """
         self._table_lock.acquire()
-        if broker_neighbour_id is not None and broker_neighbour_id in self._table:
-            self._table[broker_neighbour_id].set_broker_neighbour_online(True)
+        if broker_neighbor_id is not None and broker_neighbor_id in self._table:
+            self._table[broker_neighbor_id].broker_neighbor_last_online_timestamp = broker_clock.current_broker_time()
         self._table_lock.release()
 
     def add_entry(self, neighbor: BrokerNeighborInfo):
         if neighbor is not None:
             self._table_lock.acquire()
-            self._table[neighbor.get_broker_neighbour_id()] = neighbor
+            self._table[neighbor.broker_neighbor_id] = neighbor
             self._table_lock.release()
 
-    def remove_entry(self, broker_neighbour_id: str):
+    def remove_entry(self, broker_neighbor_id: str):
         """removes an entry from the table, if the entry doesn't exist, then nothing happens"""
         self._table_lock.acquire()
-        if broker_neighbour_id is not None and broker_neighbour_id in self._table:
-            del self._table[broker_neighbour_id]
+        if broker_neighbor_id is not None and broker_neighbor_id in self._table:
+            del self._table[broker_neighbor_id]
         self._table_lock.release()
 
-    def search_entry(self, broker_neighbour_id: str) -> BrokerNeighborInfo | None:
+    def search_entry(self, broker_neighbor_id: str) -> BrokerNeighborInfo | None:
         """searches for any matching neighbor from the table"""
         self._table_lock.acquire()
         result = None
-        if broker_neighbour_id is not None and broker_neighbour_id in self._table:
-            result = self._table[broker_neighbour_id]
+        if broker_neighbor_id is not None and broker_neighbor_id in self._table:
+            result = self._table[broker_neighbor_id]
         self._table_lock.release()
         return result
 
-    def check_table_for_potentially_offline_brokers(self, this_broker_info: dict):
-        """checks which neighbors might be potentially offline, and sends them a neighbours_request"""
+    def check_table_for_potentially_offline_brokers(self):
+        """checks which neighbors might be potentially offline, and sends them a neighbors_request"""
         self._table_lock.acquire()
-        msg_string = json.dumps(
-            {"TYPE": "BROKER_NEIGHBORS_REQUEST", "BROKER_ID": this_broker_info["id"],
-             "BROKER_ADDRESS": this_broker_info["address"],
-             "BROKER_PORT": this_broker_info["port"]})
+
+        neighbor_request_msg = BrokerNeighborsRequestMessage(broker_id=this_broker_info["id"],
+                                                             broker_address=this_broker_info["address"],
+                                                             broker_port=this_broker_info["port"], well_formed=True)
+
         for entry in self._table.values():
-            if entry.is_broker_neighbour_potentially_offline():
-                send_message(msg_string, this_broker_info["address"],
-                             (entry.get_broker_neighbour_address(), entry.get_broker_neighbour_port()))
+            if entry.is_broker_neighbor_potentially_offline():
+                send_message(neighbor_request_msg.as_json(), this_broker_info["address"],
+                             (entry.broker_neighbor_address, entry.broker_neighbor_port))
         self._table_lock.release()
 
     def get_small_flooding_list(self, checked_brokers: list) -> list:
-        """returns a list of neighbours to be used for the broker subscribe procedure
-           the first neighbours on the list is to be used for the random walk, the others should not forward their requests
+        """returns a list of neighbors to be used for the broker subscribe procedure
+           the first neighbor on the list is to be used for the random walk, the others should not forward their requests
         """
         result = []
 
-        broker_logger.debug(self.get_table())
+        broker_logger.debug(self.get_table_as_list())
 
         self._table_lock.acquire()
         to_be_verified = list(self._table.keys())
@@ -125,21 +107,21 @@ class BrokerNeighborTable(object):
         while to_be_verified:
             selected = random.choice(to_be_verified)
             to_be_verified.remove(selected)
-            if self._table[selected].is_broker_neighbour_online():
+            if self._table[selected].broker_neighbor_last_online_timestamp:
                 result.append(self._table[selected])
         self._table_lock.release()
 
         return result
 
-    def get_table(self) -> list:
+    def get_table_as_list(self) -> list:
         """returns the table as a list"""
         temp_list = []
         self._table_lock.acquire()
         for entry in self._table.values():
-            if entry.is_broker_neighbour_online():
-                temp_dict = {"BROKER_ID": entry.get_broker_neighbour_id(),
-                             "BROKER_ADDRESS": entry.get_broker_neighbour_address(),
-                             "BROKER_PORT": entry.get_broker_neighbour_port()}
+            if entry.broker_neighbor_last_online_timestamp:
+                temp_dict = {"BROKER_ID": entry.broker_neighbor_id,
+                             "BROKER_ADDRESS": entry.broker_neighbor_address,
+                             "BROKER_PORT": entry.broker_neighbor_port}
                 temp_list.append(temp_dict)
         self._table_lock.release()
 

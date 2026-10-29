@@ -1,57 +1,34 @@
+import json
 import threading
+from dataclasses import field, dataclass
 
-from global_data import broker_logger
+from broker_messages.context_response_message import ContextResponseMessage
 from context_management.context_info_table import ContextInfo
-from message_exchange.message_sender import send_context_response
-from message_exchange.broker_messages import BrokerMessage
+from global_data import broker_logger
+from message_exchange.message_sender import send_message
 
 
+@dataclass
 class Subscription(object):
     """
         Class representing an entry in the subscription table
     """
 
-    def __init__(self, rcv_msg: BrokerMessage):
-        self._entity_id = rcv_msg.get_token("ENTITY_ID")
-        self._entity_type = rcv_msg.get_token("ENTITY_TYPE")
-        self._scope = rcv_msg.get_token("SCOPE")
-        self._subscriber_address = rcv_msg.get_token("SUBSCRIBER_ADDRESS")
-        self._subscriber_port = rcv_msg.get_token("SUBSCRIBER_PORT")
-        "for how many seconds should this subscription be valid - integer"
-        self._duration = rcv_msg.get_token("DURATION")
+    entity_id: str
+    entity_type: str
+    scope: str
+    subscriber_address: str
+    subscriber_port: int
+    # for how many seconds should this subscription be valid - integer > 0
+    duration: int
+    object_id: str = field(init=False)
 
-    def get_object_id(self) -> str:
-        """unique identifier for this object"""
-        return str(hash(
-            self._entity_id + self._entity_type + self._scope + self._subscriber_address + str(self._subscriber_port)))
+    def __post_init__(self):
+        self.object_id = str(hash(
+            self.entity_id + self.entity_type + self.scope + self.subscriber_address + str(self.subscriber_port)))
 
-    def get_entity_id(self) -> str:
-        return self._entity_id
-
-    def get_entity_type(self) -> str:
-        return self._entity_type
-
-    def get_scope(self) -> str:
-        return self._scope
-
-    def get_subscriber_address(self) -> str:
-        return self._subscriber_address
-
-    def get_subscriber_port(self) -> int:
-        return self._subscriber_port
-
-    def get_duration(self) -> int:
-        """for how many seconds should this subscription be valid - integer"""
-        return self._duration
-
-    def print(self) -> str:
-        contents = {"SUBSCRIPTION_ID": self.get_object_id(),
-                    "ENTITY_ID": self.get_entity_id(), "ENTITY_TYPE": self.get_entity_type(), "SCOPE": self.get_scope(),
-                    "SUBSCRIBER_ADDRESS": self.get_subscriber_address(),
-                    "SUBSCRIBER_PORT": self.get_subscriber_port(),
-                    "DURATION": self.get_duration()}
-
-        return str(contents)
+    def as_json(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
 class SubscriptionTable(object):
@@ -68,10 +45,10 @@ class SubscriptionTable(object):
     def add_entry(self, sub: Subscription):
         if sub is not None:
             self._table_lock.acquire()
-            self._table[sub.get_object_id()] = sub
-            self._sub_timers[sub.get_object_id()] = threading.Timer(float(sub.get_duration()), sub_timer_thread,
-                                                                    [sub.get_object_id(), self])
-            self._sub_timers[sub.get_object_id()].start()
+            self._table[sub.object_id] = sub
+            self._sub_timers[sub.object_id] = threading.Timer(float(sub.duration), sub_timer_thread,
+                                                              [sub.object_id, self])
+            self._sub_timers[sub.object_id].start()
             self._table_lock.release()
 
     def remove_entry(self, entry_id: str):
@@ -89,7 +66,7 @@ class SubscriptionTable(object):
         if entity_id is not None and entity_type is not None and scope is not None:
             self._table_lock.acquire()
             for sub in self._table.values():
-                if sub.get_entity_id() == entity_id and sub.get_entity_type() == entity_type and sub.get_scope() == scope:
+                if sub.entity_id == entity_id and sub.entity_type == entity_type and sub.scope == scope:
                     result_list.append(sub)
             self._table_lock.release()
         return result_list
@@ -98,11 +75,24 @@ class SubscriptionTable(object):
         # if there are any subscriptions to this data, then notify all subscribers
         self._table_lock.acquire()
         for sub in self._table.values():
-            if sub.get_entity_id() == ctx_data.get_entity_id() and sub.get_entity_type() == ctx_data.get_entity_type() and sub.get_scope() == ctx_data.get_scope():
-                broker_logger.debug(
-                    "sending data to : " + str((sub.get_subscriber_address(), sub.get_subscriber_port())))
-                send_context_response(this_broker_info, ctx_data,
-                                      (sub.get_subscriber_address(), sub.get_subscriber_port()))
+            if sub.entity_id == ctx_data.entity_id and sub.entity_type == ctx_data.entity_type and sub.scope == ctx_data.scope:
+                # broker_logger.debug(
+                #  "sending data to : " + str((sub.get_subscriber_address(), sub.get_subscriber_port())))
+                context_response_msg = ContextResponseMessage(broker_id=this_broker_info["id"],
+                                                              broker_address=this_broker_info["address"],
+                                                              broker_port=this_broker_info["port"],
+                                                              entity_id=ctx_data.entity_id,
+                                                              entity_type=ctx_data.entity_type,
+                                                              provider_id=ctx_data.provider_id,
+                                                              provider_address=ctx_data.provider_address,
+                                                              provider_port=ctx_data.provider_port,
+                                                              scope=ctx_data.scope,
+                                                              data=ctx_data.data,
+                                                              validity_end=ctx_data.validity_end,
+                                                              well_formed=True)
+
+                send_message(context_response_msg.as_json(), this_broker_info["address"],
+                             (sub.subscriber_address, sub.subscriber_port))
 
         self._table_lock.release()
 
@@ -110,7 +100,7 @@ class SubscriptionTable(object):
         result = ""
         self._table_lock.acquire()
         for sub in self._table.values():
-            result += '\n' + sub.print() + " ||"
+            result += '\n' + sub + " ||"
         self._table_lock.release()
         return result
 

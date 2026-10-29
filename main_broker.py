@@ -1,4 +1,6 @@
 import configparser
+import json
+import logging
 import queue
 import sys
 import threading
@@ -6,12 +8,11 @@ import uuid
 from logging.handlers import QueueHandler, QueueListener
 from threading import Thread
 
-from global_data import broker_neighbors, this_broker_info
-from message_exchange.message_received import message_received_service_task
-from neighbor_management.neighbour_service import neighbour_broker_live_check
-from neighbor_management.broker_neighbor_table import BrokerNeighborInfo
+from global_data import broker_neighbors, broker_clock, this_broker_info
+from message_exchange.message_received import message_received
 from message_exchange.message_sender import *
-from message_exchange.broker_messages import *
+from neighbor_management.broker_neighbor_table import BrokerNeighborInfo
+from neighbor_management.neighbour_service import neighbour_broker_live_check
 
 
 def main():
@@ -67,23 +68,25 @@ def main():
     this_broker_info["port"] = port_broker_nr
 
     # get list of start neighbors
-    # print(config['config_values']['start_neighbours'])
-    start_neighbours = json.loads(config['config_values']['start_neighbours'])
+    # print(config['config_values']['start_neighbors'])
+    start_neighbours = json.loads(config['config_values']['start_neighbors'])
 
     for index in range(0, len(start_neighbours), 3):
-        neighbor = BrokerNeighborInfo(start_neighbours[index], start_neighbours[index + 1], start_neighbours[index + 2])
-        neighbor.set_broker_neighbour_online(True)
+        neighbor = BrokerNeighborInfo(broker_neighbor_id=start_neighbours[index],
+                                      broker_neighbor_address=start_neighbours[index + 1],
+                                      broker_neighbor_port=start_neighbours[index + 2],
+                                      broker_neighbor_last_online_timestamp=broker_clock.current_broker_time())
         broker_neighbors.add_entry(neighbor)
 
     # start the neighbor live check regular timer
-    threading.Timer(1, neighbour_broker_live_check, [this_broker_info]).start()
+    threading.Timer(1, neighbour_broker_live_check).start()
 
     # start the time correction with ntp regular timer
     broker_clock.time_correction_with_ntp()
 
     while True:
         received_raw_data, sender_address = broker_sock.recvfrom(1024)
-        Thread(target=message_received_service_task,
+        Thread(target=message_received,
                args=[received_raw_data, sender_address]).start()
 
 

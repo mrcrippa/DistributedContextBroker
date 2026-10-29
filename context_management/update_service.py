@@ -1,36 +1,38 @@
-from global_data import *
+from broker_messages.ack_message import AckMessage
+from broker_messages.update_message import UpdateMessage
 from context_management.context_info_table import ContextInfo
-from message_exchange.ack_message import ACKMessage
-from message_exchange.message_sender import send_ack, send_message
-
-from message_exchange.broker_messages import BrokerMessage
-from message_exchange.update_message import UpdateMessage
+from global_data import *
+from message_exchange.message_sender import send_message
 
 
-def process_update_message(rcv_msg: UpdateMessage, sender_address: tuple):
-    """adds an entry to the context info table, received message was already verified and it's well-formed"""
+def process_update_message(rcv_msg: UpdateMessage):
+    """Adds an entry to the context info table, update message was already verified and it's well-formed"""
 
-    if rcv_msg is None  or rcv_msg is not UpdateMessage:
+    if rcv_msg is None or rcv_msg is not UpdateMessage or not rcv_msg.well_formed:
         return
 
     # create ContextInfo object
-    ctx_data = ContextInfo(rcv_msg)
+    ctx_data = ContextInfo(provider_id=rcv_msg.provider_id, entity_id=rcv_msg.entity_id,
+                           entity_type=rcv_msg.entity_type, scope=rcv_msg.scope, data=rcv_msg.data,
+                           validity_end=rcv_msg.validity_end, provider_port=rcv_msg.provider_port,
+                           provider_address=rcv_msg.provider_address)
 
     # remove any data already there, since this will replace it
     # if no data exists, then nothing happens
-    ctx_table.remove_entry(ctx_data.get_object_id())
+    ctx_table.remove_entry(ctx_data.object_id)
+
     # add new data
     ctx_table.add_entry(ctx_data)
+
     # broker_logger.debug("ctx_table : " + ctx_table.print())
     # broker_logger.debug("sub_table : " + sub_table.print())
 
     # send an ACK message confirming the update
-
-    ack_msg = ACKMessage(
+    ack_msg = AckMessage(
         broker_id=this_broker_info["id"], broker_address=this_broker_info["address"],
         broker_port=this_broker_info["port"], requested_operation="UPDATE",
-        requester_address=sender_address[0], requester_port=sender_address[1],
-        information=f"[{ctx_data.get_entity_id()},{ctx_data.get_entity_type()},{ctx_data.get_scope()}]",
+        requester_address=rcv_msg.provider_address, requester_port=rcv_msg.provider_port,
+        information=f"[{ctx_data.entity_id},{ctx_data.entity_type},{ctx_data.scope}]",
         well_formed=True
     )
 
