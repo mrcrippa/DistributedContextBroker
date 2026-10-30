@@ -9,10 +9,10 @@ from broker_messages.ping_message import process_message_tokens_as_ping_msg, Pin
 from broker_messages.subscribe_message import process_message_tokens_as_subscribe_msg
 from broker_messages.update_message import process_message_tokens_as_update_msg
 from context_management.update_service import process_update_message
-from global_data import broker_logger, broker_clock, this_broker_info
+from global_data import broker_logger, broker_internal_clock, this_broker_info
 from message_exchange.message_sender import send_message
 from neighbor_management.neighbour_service import process_broker_neighbors_request, process_broker_neighbors_response
-from subscriptions.subscribe_service import process_subscription
+from subscriptions.subscribe_service import process_broker_subscribe_msg, process_subscribe_msg
 
 
 def message_received(received_raw_data: str, sender_address: tuple):
@@ -23,9 +23,9 @@ def message_received(received_raw_data: str, sender_address: tuple):
 
     The accepted raw messages are valid JSON strings that will be converted into Python dicts.
 
-    One of the keys of this dict must be "TYPE", which has the following accepted values:
-    "ACK", "NACK", "PING", "SUBSCRIBE", "UPDATE", "CONTEXT_RESPONSE",
-    "BROKER_NEIGHBORS_REQUEST", "BROKER_NEIGHBORS_RESPONSE", "BROKER_SUBSCRIBE"
+    One of the keys of this dict must be "type", which has the following accepted values:
+    "ack", "nack", "ping", "subscribe", "update", "context_response",
+    "broker_neighbors_request", "broker_neighbors_response", "broker_subscribe"
 
     :param received_raw_data: the raw string received from the broker through the UDP socket in main_broker
     :param sender_address: the address of the sender of this message, in format (host,port)
@@ -36,26 +36,26 @@ def message_received(received_raw_data: str, sender_address: tuple):
 
     try:
         message_tokens = json.loads(received_raw_data)
-        msg_type = message_tokens.get("TYPE")
+        msg_type = message_tokens.get("type")
 
         if msg_type is not None:
             # verify the message further based on the type
             match msg_type:
-                case "ACK":
+                case "ack":
                     verified_msg = process_message_tokens_as_ack_msg(message_tokens)
-                case "NACK":
+                case "nack":
                     verified_msg = process_message_tokens_as_nack_msg(message_tokens)
-                case "PING":
+                case "ping":
                     verified_msg = process_message_tokens_as_ping_msg(message_tokens)
-                case "SUBSCRIBE":
+                case "subscribe":
                     verified_msg = process_message_tokens_as_subscribe_msg(message_tokens)
-                case "UPDATE":
+                case "update":
                     verified_msg = process_message_tokens_as_update_msg(message_tokens)
-                case "BROKER_NEIGHBORS_REQUEST":
+                case "broker_neighbors_request":
                     verified_msg = process_message_tokens_as_broker_neighbors_request_msg(message_tokens)
-                case "BROKER_NEIGHBORS_RESPONSE":
+                case "broker_neighbors_response":
                     verified_msg = process_message_tokens_as_broker_neighbors_response_msg(message_tokens)
-                case "BROKER_SUBSCRIBE":
+                case "broker_subscribe":
                     verified_msg = process_message_tokens_as_broker_subscribe_msg(message_tokens)
 
     except json.JSONDecodeError:
@@ -64,38 +64,38 @@ def message_received(received_raw_data: str, sender_address: tuple):
     if verified_msg is not None and verified_msg.well_formed:
 
         match verified_msg.type:
-            case "PING":
+            case "ping":
                 # simple ping message, can be used to check the local time at the broker
                 ## broker_logger.debug("PING message received from " + str(sender_address))
 
                 ping_msg = PingMessage(
                     well_formed=True, broker_id=this_broker_info["id"], broker_address=this_broker_info["address"],
-                    broker_port=this_broker_info["port"], timestamp=broker_clock.current_broker_time(),
+                    broker_port=this_broker_info["port"], timestamp=broker_internal_clock.current_broker_time(),
                     requester_address=sender_address[0], requester_port=sender_address[1]
                 )
 
                 send_message(ping_msg.as_json(), this_broker_info["address"],
                              (ping_msg.requester_address, ping_msg.requester_port))
 
-            case "SUBSCRIBE":
+            case "subscribe":
                 # a subscription request received from a context consumer
                 ##broker_logger.debug("SUBSCRIBE message received from " + str(sender_address))
                 ##broker_logger.debug("raw data : " + str(received_raw_data))
-                process_subscription(verified_msg)
-            case "BROKER_SUBSCRIBE":
+                process_subscribe_msg(verified_msg)
+            case "broker_subscribe":
                 # a broker subscription request received from another broker
                 ##broker_logger.debug("BROKER_SUBSCRIBE message received from " + str(sender_address))
                 ##broker_logger.debug("raw data : " + str(received_raw_data))
-                process_subscription(verified_msg)
-            case "UPDATE":
+                process_broker_subscribe_msg(verified_msg)
+            case "update":
                 # a context provider wants to update/add context information to this broker
                 ## broker_logger.debug("UPDATE message received from " + str(sender_address))
                 process_update_message(verified_msg)
-            case "BROKER_NEIGHBORS_REQUEST":
+            case "broker_neighbors_request":
                 # BROKER_NEIGHBORS_REQUEST messages get the list of broker neighbors in return
                 ## broker_logger.debug("BROKER_NEIGHBORS_REQUEST message received from " + str(sender_address))
                 process_broker_neighbors_request(verified_msg)
-            case "BROKER_NEIGHBORS_RESPONSE":
+            case "broker_neighbors_response":
                 # BROKER_NEIGHBORS_RESPONSE has a list of broker neighbors from another broker
                 # broker_logger.debug("BROKER_NEIGHBORS_RESPONSE message received from " + str(sender_address))
                 process_broker_neighbors_response(verified_msg)
@@ -106,7 +106,7 @@ def message_received(received_raw_data: str, sender_address: tuple):
 
         nack_msg = NackMessage(
             broker_id=this_broker_info["id"], broker_address=this_broker_info["address"],
-            broker_port=this_broker_info["port"], requested_operation="MESSAGE_RECEIVED",
+            broker_port=this_broker_info["port"], requested_operation="message_received",
             requester_address=sender_address[0], requester_port=sender_address[1],
             information="Received message is not well formed", well_formed=True
         )

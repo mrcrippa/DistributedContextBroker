@@ -11,7 +11,7 @@ class PingMessage:
     broker_port: int
     requester_address: str
     requester_port: int
-    type: str = "PING"
+    type: str = "ping"
     well_formed: bool = False
 
     def as_json(self):
@@ -27,29 +27,29 @@ def process_message_tokens_as_ping_msg(message_tokens=None) -> PingMessage | Non
     try:
         if message_tokens is None:
             return None
-        elif message_tokens.get("TIMESTAMP") is None or message_tokens.get("TIMESTAMP") or int(
-                message_tokens.get("TIMESTAMP")) <= 0:
+        elif message_tokens.get("timestamp") is None or not message_tokens.get("timestamp") or int(
+                message_tokens.get("timestamp")) <= 0:
             return None
-        elif message_tokens.get("BROKER_ID") is None or message_tokens.get("BROKER_ID"):
+        elif message_tokens.get("broker_id") is None or not message_tokens.get("broker_id"):
             return None
-        elif message_tokens.get("BROKER_ADDRESS") is None or message_tokens.get("BROKER_ADDRESS"):
-            return None
-        elif message_tokens.get(
-                "BROKER_PORT") is None or message_tokens.get(
-            "BROKER_PORT") or int(message_tokens.get("BROKER_PORT")) <= 0:
-            return None
-        elif message_tokens.get("REQUESTER_ADDRESS") is None or message_tokens.get("REQUESTER_ADDRESS"):
+        elif message_tokens.get("broker_address") is None or not message_tokens.get("broker_address"):
             return None
         elif message_tokens.get(
-                "REQUESTER_PORT") is None or message_tokens.get(
-            "REQUESTER_PORT") or int(message_tokens.get("REQUESTER_PORT")) <= 0:
+                "broker_port") is None or not message_tokens.get(
+            "broker_port") or int(message_tokens.get("broker_port")) <= 0:
+            return None
+        elif message_tokens.get("requester_address") is None or not message_tokens.get("requester_address"):
+            return None
+        elif message_tokens.get(
+                "requester_port") is None or not message_tokens.get(
+            "requester_port") or int(message_tokens.get("requester_port")) <= 0:
             return None
     except (TypeError, ValueError):
         return None
 
     return PingMessage(
-        broker_id=message_tokens.get("BROKER_ID"), broker_address=message_tokens.get("BROKER_ADDRESS"),
-        broker_port=message_tokens.get("BROKER_PORT"), timestamp=message_tokens.get("TIMESTAMP"), well_formed=True,
-        requester_port=message_tokens.get("REQUESTER_PORT"),
-        requester_address=message_tokens.get("REQUESTER_ADDRESS")
+        broker_id=message_tokens.get("broker_id"), broker_address=message_tokens.get("broker_address"),
+        broker_port=message_tokens.get("broker_port"), timestamp=message_tokens.get("timestamp"), well_formed=True,
+        requester_port=message_tokens.get("requester_port"),
+        requester_address=message_tokens.get("requester_address")
     )

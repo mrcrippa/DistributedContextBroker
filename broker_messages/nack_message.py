@@ -11,7 +11,7 @@ class NackMessage:
     requester_address: str
     requester_port: int
     information: str
-    type: str = "NACK"
+    type: str = "nack"
     well_formed: bool = False
 
     def as_json(self):
@@ -19,7 +19,7 @@ class NackMessage:
 
 
 def process_message_tokens_as_nack_msg(message_tokens=None) -> NackMessage | None:
-    """check if the message provided is a well-formed NACK message
+    """check if the message provided is a well-formed nack message
      if yes, returns a NackMessage object
      if not, returns None
      """
@@ -27,32 +27,32 @@ def process_message_tokens_as_nack_msg(message_tokens=None) -> NackMessage | Non
     try:
         if message_tokens is None:
             return None
-        elif message_tokens.get("BROKER_ID") is None or message_tokens.get("BROKER_ID"):
+        elif message_tokens.get("broker_id") is None or not message_tokens.get("broker_id"):
             return None
-        elif message_tokens.get("BROKER_ADDRESS") is None or message_tokens.get("BROKER_ADDRESS"):
-            return None
-        elif message_tokens.get(
-                "BROKER_PORT") is None or message_tokens.get(
-            "BROKER_PORT") or int(message_tokens.get("BROKER_PORT")) <= 0:
-            return None
-        elif message_tokens.get("REQUESTED_OPERATION") is None or message_tokens.get("REQUESTED_OPERATION"):
-            return None
-        elif message_tokens.get("REQUESTER_ADDRESS") is None or message_tokens.get("REQUESTER_ADDRESS"):
+        elif message_tokens.get("broker_address") is None or not message_tokens.get("broker_address"):
             return None
         elif message_tokens.get(
-                "REQUESTER_PORT") is None or message_tokens.get(
-            "REQUESTER_PORT") or int(message_tokens.get("REQUESTER_PORT")) <= 0:
+                "broker_port") is None or not message_tokens.get(
+            "broker_port") or int(message_tokens.get("broker_port")) <= 0:
             return None
-        elif message_tokens.get("INFORMATION") is None or message_tokens.get("INFORMATION"):
-            return False
+        elif message_tokens.get("requested_operation") is None or not message_tokens.get("requested_operation"):
+            return None
+        elif message_tokens.get("requester_address") is None or not message_tokens.get("requester_address"):
+            return None
+        elif message_tokens.get(
+                "requester_port") is None or not message_tokens.get(
+            "requester_port") or int(message_tokens.get("requester_port")) <= 0:
+            return None
+        elif message_tokens.get("information") is None or not message_tokens.get("information"):
+            return None
     except (TypeError, ValueError):
         return None
 
     return NackMessage(
-        broker_id=message_tokens.get("BROKER_ID"), broker_address=message_tokens.get("BROKER_ADDRESS"),
-        broker_port=message_tokens.get("BROKER_PORT"),
-        requested_operation=message_tokens.get("REQUESTED_OPERATION"),
-        requester_address=message_tokens.get("REQUESTER_ADDRESS"),
-        requester_port=message_tokens.get("REQUESTER_PORT"),
-        information=message_tokens.get("INFORMATION"), well_formed=True
+        broker_id=message_tokens.get("broker_id"), broker_address=message_tokens.get("broker_address"),
+        broker_port=message_tokens.get("broker_port"),
+        requested_operation=message_tokens.get("requested_operation"),
+        requester_address=message_tokens.get("requester_address"),
+        requester_port=message_tokens.get("requester_port"),
+        information=message_tokens.get("information"), well_formed=True
     )

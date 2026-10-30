@@ -45,7 +45,7 @@ class ContextInfoTable(object):
         if context_info_object is not None:
             self._table_lock.acquire()
             self._table[context_info_object.object_id] = context_info_object
-            valid_interval_time = (context_info_object.validity_end - broker_clock.current_broker_time()) / 1000
+            valid_interval_time = (context_info_object.validity_end - broker_internal_clock.current_broker_time()) / 1000
             self._entry_timers[context_info_object.object_id] = threading.Timer(valid_interval_time,
                                                                                       ctx_timer_thread,
                                                                                       [context_info_object.object_id,
@@ -69,7 +69,7 @@ class ContextInfoTable(object):
             key_identifier = str(hash(entity_id + entity_type + scope))
             self._table_lock.acquire()
             if key_identifier in self._table:
-                if broker_clock.current_broker_time() <= self._table[key_identifier].validity_end:
+                if broker_internal_clock.current_broker_time() <= self._table[key_identifier].validity_end:
                     result = self._table[key_identifier]
             self._table_lock.release()
         return result

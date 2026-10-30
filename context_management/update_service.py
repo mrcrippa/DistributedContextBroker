@@ -30,7 +30,7 @@ def process_update_message(rcv_msg: UpdateMessage):
     # send an ACK message confirming the update
     ack_msg = AckMessage(
         broker_id=this_broker_info["id"], broker_address=this_broker_info["address"],
-        broker_port=this_broker_info["port"], requested_operation="UPDATE",
+        broker_port=this_broker_info["port"], requested_operation="update",
         requester_address=rcv_msg.provider_address, requester_port=rcv_msg.provider_port,
         information=f"[{ctx_data.entity_id},{ctx_data.entity_type},{ctx_data.scope}]",
         well_formed=True

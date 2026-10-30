@@ -2,7 +2,7 @@ import threading
 
 from broker_messages.broker_neighbors_request_message import BrokerNeighborsRequestMessage
 from broker_messages.broker_neighbors_response_message import BrokerNeighborsResponseMessage
-from global_data import broker_neighbors, this_broker_info, broker_clock
+from global_data import broker_neighbors, this_broker_info, broker_internal_clock
 from message_exchange.message_sender import send_message
 from neighbor_management.broker_neighbor_table import BrokerNeighborInfo
 
@@ -21,21 +21,21 @@ def process_broker_neighbors_response(rcv_msg: BrokerNeighborsResponseMessage):
         broker_neighbors.add_entry(BrokerNeighborInfo(broker_neighbor_id=rcv_msg.broker_id,
                                                       broker_neighbor_address=rcv_msg.broker_address,
                                                       broker_neighbor_port=rcv_msg.broker_port,
-                                                      broker_neighbor_last_online_timestamp=broker_clock.current_broker_time()))
+                                                      broker_neighbor_last_online_timestamp=broker_internal_clock.current_broker_time()))
     else:
         broker_neighbors.set_entry_online(rcv_msg.broker_id)
 
     # insert neighbors in broker neighbors table
     for entry in rcv_msg.broker_neighbors:
-        if entry["BROKER_ID"] == this_broker_info["id"]:
+        if entry["broker_id"] == this_broker_info["id"]:
             continue
-        if broker_neighbors.search_entry(entry["BROKER_ID"]) is None:
-            broker_neighbors.add_entry(BrokerNeighborInfo(broker_neighbor_id=entry["BROKER_ID"],
-                                                          broker_neighbor_address=entry["BROKER_ADDRESS"],
-                                                          broker_neighbor_port=entry["BROKER_PORT"],
-                                                          broker_neighbor_last_online_timestamp=broker_clock.current_broker_time()))
+        if broker_neighbors.search_entry(entry["broker_id"]) is None:
+            broker_neighbors.add_entry(BrokerNeighborInfo(broker_neighbor_id=entry["broker_id"],
+                                                          broker_neighbor_address=entry["broker_address"],
+                                                          broker_neighbor_port=entry["broker_port"],
+                                                          broker_neighbor_last_online_timestamp=broker_internal_clock.current_broker_time()))
         else:
-            broker_neighbors.set_entry_online(entry["BROKER_ID"])
+            broker_neighbors.set_entry_online(entry["broker_id"])
 
 
 def process_broker_neighbors_request(rcv_msg: BrokerNeighborsRequestMessage):
@@ -55,6 +55,6 @@ def process_broker_neighbors_request(rcv_msg: BrokerNeighborsRequestMessage):
         broker_neighbors.add_entry(BrokerNeighborInfo(broker_neighbor_id=rcv_msg.broker_id,
                                                       broker_neighbor_address=rcv_msg.broker_address,
                                                       broker_neighbor_port=rcv_msg.broker_port,
-                                                      broker_neighbor_last_online_timestamp=broker_clock.current_broker_time()))
+                                                      broker_neighbor_last_online_timestamp=broker_internal_clock.current_broker_time()))
     else:
         broker_neighbors.set_entry_online(rcv_msg.broker_id)

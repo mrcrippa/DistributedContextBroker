@@ -1,7 +1,6 @@
 import json
 import random
 import socket
-import time
 
 
 def main():
@@ -20,20 +19,20 @@ def main():
         socket_connected = True
 
     dict_as_string = json.dumps(
-        {"TYPE": "SUBSCRIBE",
-         "SUBSCRIBER_ADDRESS": "127.0.0.1",
-         "SUBSCRIBER_PORT": port_nr,
-         "ENTITY_ID": "Porto",
-         "ENTITY_TYPE": "location", "SCOPE": "weather_information",
-         "DURATION": 60})
+        {"type": "subscribe",
+         "subscriber_address": "127.0.0.1",
+         "subscriber_port": port_nr,
+         "entity_id": "Porto",
+         "entity_type": "location", "scope": "weather_information",
+         "duration": 60})
 
-    # print(dict_as_string)
+    print(dict_as_string)
 
-    consumer_sock.sendto(str.encode(dict_as_string), ("127.0.0.1", 50002))
+    consumer_sock.sendto(str.encode(dict_as_string), ("127.0.0.1", 52000))
 
     while True:
         received_raw_data, sender_address = consumer_sock.recvfrom(1024)
-        # print("received_raw_data : " + str(received_raw_data) + " sender_address : " + str(sender_address))
+        print("received_raw_data : " + str(received_raw_data) + " sender_address : " + str(sender_address))
 
 
 main()

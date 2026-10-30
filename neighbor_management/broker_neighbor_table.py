@@ -3,7 +3,7 @@ import threading
 from dataclasses import dataclass
 
 from broker_messages.broker_neighbors_request_message import BrokerNeighborsRequestMessage
-from global_data import broker_clock, broker_logger, this_broker_info
+from global_data import broker_internal_clock, broker_logger, this_broker_info
 from message_exchange.message_sender import send_message
 
 
@@ -23,7 +23,7 @@ class BrokerNeighborInfo(object):
     def is_broker_neighbor_potentially_offline(self) -> bool:
         if self.broker_neighbor_last_online_timestamp:
             # time elapsed since the last contact with this neighbor
-            time_elapsed = broker_clock.current_broker_time() - self.broker_neighbor_last_online_timestamp
+            time_elapsed = broker_internal_clock.current_broker_time() - self.broker_neighbor_last_online_timestamp
             # if time_elapsed less than 15s, neighbor is considered online
             # between 15s and 30s, it's potentially offline
             # more than 30s, it's considered offline, and set as offline
@@ -50,7 +50,7 @@ class BrokerNeighborTable(object):
         """ searches for and marks a neighbor as online, if the neighbor does not exist, nothing happens """
         self._table_lock.acquire()
         if broker_neighbor_id is not None and broker_neighbor_id in self._table:
-            self._table[broker_neighbor_id].broker_neighbor_last_online_timestamp = broker_clock.current_broker_time()
+            self._table[broker_neighbor_id].broker_neighbor_last_online_timestamp = broker_internal_clock.current_broker_time()
         self._table_lock.release()
 
     def add_entry(self, neighbor: BrokerNeighborInfo):
@@ -119,9 +119,9 @@ class BrokerNeighborTable(object):
         self._table_lock.acquire()
         for entry in self._table.values():
             if entry.broker_neighbor_last_online_timestamp:
-                temp_dict = {"BROKER_ID": entry.broker_neighbor_id,
-                             "BROKER_ADDRESS": entry.broker_neighbor_address,
-                             "BROKER_PORT": entry.broker_neighbor_port}
+                temp_dict = {"broker_id": entry.broker_neighbor_id,
+                             "broker_address": entry.broker_neighbor_address,
+                             "broker_port": entry.broker_neighbor_port}
                 temp_list.append(temp_dict)
         self._table_lock.release()
 

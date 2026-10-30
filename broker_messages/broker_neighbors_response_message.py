@@ -8,7 +8,7 @@ class BrokerNeighborsResponseMessage:
     broker_address: str
     broker_port: int
     broker_neighbors: list[dict] = field(default_factory=list)
-    type: str = "BROKER_NEIGHBORS_REQUEST"
+    type: str = "broker_neighbors_response"
     well_formed: bool = False
 
     def as_json(self):
@@ -20,34 +20,35 @@ def process_message_tokens_as_broker_neighbors_response_msg(
     try:
         if message_tokens is None:
             return None
-        elif message_tokens.get("BROKER_ID") is None or message_tokens.get("BROKER_ID"):
+        elif message_tokens.get("broker_id") is None or not message_tokens.get("broker_id"):
             return None
-        elif message_tokens.get("BROKER_ADDRESS") is None or message_tokens.get("BROKER_ADDRESS"):
+        elif message_tokens.get("broker_address") is None or not message_tokens.get("broker_address"):
             return None
-        elif message_tokens.get("BROKER_NEIGHBORS") is None or message_tokens.get("BROKER_NEIGHBORS") or type(
-                message_tokens.get("BROKER_NEIGHBORS")).__name__ != "list":
+        elif message_tokens.get("broker_neighbors") is None or not message_tokens.get("broker_neighbors") or type(
+                message_tokens.get("broker_neighbors")).__name__ != "list":
             return None
         elif message_tokens.get(
-                "BROKER_PORT") is None or message_tokens.get(
-            "BROKER_PORT") or int(message_tokens.get("BROKER_PORT")) <= 0:
+                "broker_port") is None or not message_tokens.get(
+            "broker_port") or int(message_tokens.get("broker_port")) <= 0:
             return None
 
-        for neighbor in message_tokens.get("BROKER_NEIGHBORS"):
-            if neighbor.get("BROKER_ID") is None or neighbor.get("BROKER_ID") or neighbor.get(
-                    "BROKER_ADDRESS") is None or neighbor.get("BROKER_ADDRESS") or neighbor.get(
-                "BROKER_PORT") is None or int(neighbor.get("BROKER_PORT")) <= 0:
+        for neighbor in message_tokens.get("broker_neighbors"):
+            if neighbor.get("broker_id") is None or not neighbor.get("broker_id") or neighbor.get(
+                    "broker_address") is None or not neighbor.get("broker_address") or neighbor.get(
+                "broker_port") is None or not neighbor.get(
+                "broker_port") or int(neighbor.get("broker_port")) <= 0:
                 return None
 
     except (TypeError, ValueError):
         return None
 
     neighbors = list()
-    for entry in message_tokens.get_token("BROKER_NEIGHBORS"):
-        neighbor = {"BROKER_ID": str(entry.get("BROKER_ID")), "BROKER_ADDRESS": str(entry.get("BROKER_ADDRESS")),
-                    "BROKER_PORT": int(entry.get("BROKER_PORT"))}
+    for entry in message_tokens.get("broker_neighbors"):
+        neighbor = {"broker_id": str(entry.get("broker_id")), "broker_address": str(entry.get("broker_address")),
+                    "broker_port": int(entry.get("broker_port"))}
         neighbors.append(neighbor)
 
     return BrokerNeighborsResponseMessage(
-        broker_id=message_tokens.get("BROKER_ID"), broker_address=message_tokens.get("BROKER_ADDRESS"),
-        broker_port=message_tokens.get("BROKER_PORT"), well_formed=True, broker_neighbors=neighbors
+        broker_id=message_tokens.get("broker_id"), broker_address=message_tokens.get("broker_address"),
+        broker_port=message_tokens.get("broker_port"), well_formed=True, broker_neighbors=neighbors
     )

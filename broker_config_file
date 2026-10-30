@@ -2,7 +2,7 @@
 ##########################
 # which address to host the broker
 # if port is 0, then the broker will search for a random port
-host_broker_ip = 127.0.0.1
+host_broker_addr = 127.0.0.1
 port_broker_nr = 50000
 ##########################
 # name of the log file
@@ -12,5 +12,5 @@ log_file_name = log_context_broker
 broker_id = test_broker
 ##########################
 # list of startup neighbour brokers - the list should follow JSON, always ["broker1_id", "broker1_ip", broker1_port, "broker2_id", "broker2_ip", broker2_port,...]
-start_neighbors = ["broker1_id", "broker1_ip", 0, "broker2_id", "broker2_ip", 1]
+start_neighbors = ["broker2_id", "broker2_ip", 0, "broker3_id", "broker3_ip", 1]
 
