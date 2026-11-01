@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 
 
 @dataclass
@@ -9,46 +9,54 @@ class BrokerNeighborsResponseMessage:
     broker_port: int
     broker_neighbors: list[dict] = field(default_factory=list)
     type: str = "broker_neighbors_response"
-    well_formed: bool = False
 
     def as_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
-def process_message_tokens_as_broker_neighbors_response_msg(
-        message_tokens=None) -> BrokerNeighborsResponseMessage | None:
-    try:
-        if message_tokens is None:
-            return None
-        elif message_tokens.get("broker_id") is None or not message_tokens.get("broker_id"):
-            return None
-        elif message_tokens.get("broker_address") is None or not message_tokens.get("broker_address"):
-            return None
-        elif message_tokens.get("broker_neighbors") is None or not message_tokens.get("broker_neighbors") or type(
-                message_tokens.get("broker_neighbors")).__name__ != "list":
-            return None
-        elif message_tokens.get(
-                "broker_port") is None or not message_tokens.get(
-            "broker_port") or int(message_tokens.get("broker_port")) <= 0:
-            return None
+def verify_message_tokens_as_broker_neighbors_response_msg(
+        message_tokens=None) -> bool:
+    if message_tokens is None or not isinstance(message_tokens, dict):
+        return False
 
-        for neighbor in message_tokens.get("broker_neighbors"):
-            if neighbor.get("broker_id") is None or not neighbor.get("broker_id") or neighbor.get(
-                    "broker_address") is None or not neighbor.get("broker_address") or neighbor.get(
-                "broker_port") is None or not neighbor.get(
-                "broker_port") or int(neighbor.get("broker_port")) <= 0:
-                return None
+    if message_tokens.keys() != {f.name for f in fields(BrokerNeighborsResponseMessage)}:
+        return False
+
+    if message_tokens["type"] != "broker_neighbors_response":
+        return False
+
+    for str_field in [f.name for f in fields(BrokerNeighborsResponseMessage) if f.type in (str, 'str')]:
+        val = message_tokens[str_field]
+        if not isinstance(val, str) or not val.strip():
+            return False
+
+    # this loop checks the broker_neighbors list
+    # each entry is a dict with {broker_id, broker_address,broker_port}
+    # broker_id should be a non-empty string
+    # broker_address should be a non-empty string
+    if not isinstance(message_tokens["broker_neighbors"], list):
+        return False
+
+    for neighbor in message_tokens["checked_brokers"]:
+        if not isinstance(neighbor, dict) or not neighbor or neighbor.keys() != {"broker_id", "broker_address", "broker_port"}:
+            return False
+        if not (isinstance(neighbor["broker_id"], str) and neighbor["broker_id"].strip()):
+            return False
+        if not (isinstance(neighbor["broker_address"], str) and neighbor["broker_address"].strip()):
+            return False
+
+    try:
+
+        if not (0 < int(message_tokens["broker_port"]) <= 65535):
+            return False
+
+        # this loop checks the broker_neighbors list
+        # broker_port should be a valid port
+        for neighbor in message_tokens["broker_neighbors"]:
+            if not (0 < int(neighbor["broker_port"]) <= 65535):
+                return False
 
     except (TypeError, ValueError):
-        return None
+        return False
 
-    neighbors = list()
-    for entry in message_tokens.get("broker_neighbors"):
-        neighbor = {"broker_id": str(entry.get("broker_id")), "broker_address": str(entry.get("broker_address")),
-                    "broker_port": int(entry.get("broker_port"))}
-        neighbors.append(neighbor)
-
-    return BrokerNeighborsResponseMessage(
-        broker_id=message_tokens.get("broker_id"), broker_address=message_tokens.get("broker_address"),
-        broker_port=message_tokens.get("broker_port"), well_formed=True, broker_neighbors=neighbors
-    )
+    return True

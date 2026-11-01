@@ -88,8 +88,7 @@ class SubscriptionTable(object):
                                                               provider_port=ctx_data.provider_port,
                                                               scope=ctx_data.scope,
                                                               data=ctx_data.data,
-                                                              validity_end=ctx_data.validity_end,
-                                                              well_formed=True)
+                                                              validity_end=ctx_data.validity_end)
 
                 send_message(context_response_msg.as_json(), this_broker_info["address"],
                              (sub.subscriber_address, sub.subscriber_port))

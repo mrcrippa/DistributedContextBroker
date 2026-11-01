@@ -1,4 +1,3 @@
-import json
 import threading
 from dataclasses import dataclass, field
 
@@ -24,9 +23,6 @@ class ContextInfo(object):
 
     def __post_init__(self):
         self.object_id = str(hash(self.entity_id + self.entity_type + self.scope))
-
-    def as_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
 class ContextInfoTable(object):

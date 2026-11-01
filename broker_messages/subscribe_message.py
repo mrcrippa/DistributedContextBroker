@@ -1,6 +1,5 @@
 import json
-from dataclasses import dataclass
-
+from dataclasses import dataclass, fields
 
 @dataclass
 class SubscribeMessage:
@@ -12,43 +11,41 @@ class SubscribeMessage:
     # for how many seconds should this subscription be valid - integer > 0
     duration: int
     type: str = "subscribe"
-    well_formed: bool = False
 
     def as_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
-def process_message_tokens_as_subscribe_msg(message_tokens=None) -> SubscribeMessage | None:
+def verify_message_tokens_as_subscribe_msg(message_tokens=None) -> bool:
     """check if the message provided is a well-formed subscribe message
      if yes, returns a SubscribeMessage object
      if not, returns None
      """
+
+    if message_tokens is None or not isinstance(message_tokens, dict):
+        return False
+
+    if message_tokens.keys() != {f.name for f in fields(SubscribeMessage)}:
+        return False
+
+    if message_tokens["type"] != "subscribe":
+        return False
+
+    for str_field in [f.name for f in fields(SubscribeMessage) if f.type in (str, 'str')]:
+        val = message_tokens[str_field]
+        if not isinstance(val, str) or not val.strip():
+            return False
+
     try:
-        if message_tokens is None:
-            return None
-        elif message_tokens.get("entity_id") is None or not message_tokens.get("entity_id"):
-            return None
-        elif message_tokens.get("entity_type") is None or not message_tokens.get("entity_type"):
-            return None
-        elif message_tokens.get("scope") is None or not message_tokens.get("scope"):
-            return None
-        elif message_tokens.get("subscriber_address") is None or not message_tokens.get("subscriber_address"):
-            return None
-        elif message_tokens.get(
-                "subscriber_port") is None or not message_tokens.get(
-            "subscriber_port") or int(message_tokens.get("subscriber_port")) <= 0:
-            return None
-        elif message_tokens.get("duration") is None or not message_tokens.get("duration") or int(
-                message_tokens.get("duration")) <= 0:
-            return None
+        s_port = int(message_tokens["subscriber_port"])
+        duration = int(message_tokens["duration"])
+
+        if not (0 < s_port <= 65535):
+            return False
+        if duration <= 0:
+            return False
 
     except (TypeError, ValueError):
-        return None
+        return False
 
-    return SubscribeMessage(
-        entity_id=message_tokens.get("entity_id"), entity_type=message_tokens.get("entity_type"),
-        duration=message_tokens.get("duration"), scope=message_tokens.get("scope"),
-        subscriber_address=message_tokens.get("subscriber_address"),
-        subscriber_port=message_tokens.get("subscriber_port"),
-        well_formed=True
-    )
+    return True

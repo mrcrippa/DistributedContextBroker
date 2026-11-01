@@ -12,7 +12,7 @@ import global_data
 from message_exchange.message_received import message_received
 from message_exchange.message_sender import *
 from neighbor_management.broker_neighbor_table import BrokerNeighborInfo
-from neighbor_management.neighbour_service import neighbour_broker_live_check
+from neighbor_management.broker_neighbor_service import neighbour_broker_live_check
 
 
 def main():

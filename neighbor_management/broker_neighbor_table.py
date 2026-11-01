@@ -50,7 +50,8 @@ class BrokerNeighborTable(object):
         """ searches for and marks a neighbor as online, if the neighbor does not exist, nothing happens """
         self._table_lock.acquire()
         if broker_neighbor_id is not None and broker_neighbor_id in self._table:
-            self._table[broker_neighbor_id].broker_neighbor_last_online_timestamp = broker_internal_clock.current_broker_time()
+            self._table[
+                broker_neighbor_id].broker_neighbor_last_online_timestamp = broker_internal_clock.current_broker_time()
         self._table_lock.release()
 
     def add_entry(self, neighbor: BrokerNeighborInfo):
@@ -81,7 +82,7 @@ class BrokerNeighborTable(object):
 
         neighbor_request_msg = BrokerNeighborsRequestMessage(broker_id=this_broker_info["id"],
                                                              broker_address=this_broker_info["address"],
-                                                             broker_port=this_broker_info["port"], well_formed=True)
+                                                             broker_port=this_broker_info["port"])
 
         for entry in self._table.values():
             if entry.is_broker_neighbor_potentially_offline():
@@ -95,7 +96,7 @@ class BrokerNeighborTable(object):
         """
         result = []
 
-        broker_logger.debug(self.get_table_as_list())
+        broker_logger.debug(self.get_table_as_list_of_dict())
 
         self._table_lock.acquire()
         to_be_verified = list(self._table.keys())
@@ -113,8 +114,8 @@ class BrokerNeighborTable(object):
 
         return result
 
-    def get_table_as_list(self) -> list:
-        """returns the table as a list"""
+    def get_table_as_list_of_dict(self) -> list:
+        """returns the table as a list, only neighbors that are online"""
         temp_list = []
         self._table_lock.acquire()
         for entry in self._table.values():

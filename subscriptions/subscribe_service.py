@@ -9,6 +9,9 @@ from subscriptions.subscription_table import Subscription
 
 
 def process_broker_subscribe_msg(rcv_msg: BrokerSubscribeMessage):
+    if rcv_msg is None or rcv_msg is not isinstance(rcv_msg, BrokerSubscribeMessage):
+        return
+
     sub = check_for_local_subscription(rcv_msg.entity_id, rcv_msg.entity_type, rcv_msg.scope,
                                        rcv_msg.subscriber_address,
                                        rcv_msg.subscriber_port, rcv_msg.duration)
@@ -94,8 +97,7 @@ def check_for_local_subscription(entity_id: str, entity_type: str, scope: str, s
             broker_id=this_broker_info["id"], broker_address=this_broker_info["address"],
             broker_port=this_broker_info["port"], requested_operation="subscribe",
             requester_address=sub.subscriber_address, requester_port=sub.subscriber_port,
-            information=f"Consumer subscribed to [{sub.entity_id},{sub.entity_type},{sub.scope}]",
-            well_formed=True
+            information=f"Consumer subscribed to [{sub.entity_id},{sub.entity_type},{sub.scope}]"
         )
 
         send_message(ack_msg.as_json(), this_broker_info["address"],
@@ -112,8 +114,8 @@ def check_for_local_subscription(entity_id: str, entity_type: str, scope: str, s
                                                       provider_port=current_ctx_info.provider_port,
                                                       scope=current_ctx_info.scope,
                                                       data=current_ctx_info.data,
-                                                      validity_end=current_ctx_info.validity_end,
-                                                      well_formed=True)
+                                                      validity_end=current_ctx_info.validity_end
+                                                      )
 
         send_message(context_response_msg.as_json(), this_broker_info["address"],
                      (sub.subscriber_address, sub.subscriber_port))
@@ -124,6 +126,9 @@ def check_for_local_subscription(entity_id: str, entity_type: str, scope: str, s
 
 def process_subscribe_msg(rcv_msg: SubscribeMessage):
     """adds a subscription to the subscription table, received message was already verified and it's well-formed"""
+
+    if rcv_msg is None or rcv_msg is not isinstance(rcv_msg, SubscribeMessage):
+        return
 
     check_for_local_subscription(rcv_msg.entity_id, rcv_msg.entity_type, rcv_msg.scope, rcv_msg.subscriber_address,
                                  rcv_msg.subscriber_port, rcv_msg.duration)

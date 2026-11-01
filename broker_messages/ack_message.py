@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 
 @dataclass
@@ -12,46 +12,41 @@ class AckMessage:
     requester_port: int
     information: str
     type: str = "ack"
-    well_formed: bool = False
 
     def as_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
-def process_message_tokens_as_ack_msg(message_tokens=None) -> AckMessage | None:
+def verify_message_tokens_as_ack_msg(message_tokens=None) -> bool:
     """check if the message provided is a well-formed ack message
-     if yes, returns a AckMessage object
-     if not, returns None
+     if yes, returns True
+     if not, returns False
      """
-    try:
-        if message_tokens is None:
-            return None
-        elif message_tokens.get("broker_id") is None or not message_tokens.get("broker_id"):
-            return None
-        elif message_tokens.get("broker_address") is None or not message_tokens.get("broker_address"):
-            return None
-        elif message_tokens.get(
-                "broker_port") is None or not message_tokens.get(
-            "broker_port") or int(message_tokens.get("broker_port")) <= 0:
-            return None
-        elif message_tokens.get("requested_operation") is None or not message_tokens.get("requested_operation"):
-            return None
-        elif message_tokens.get("requester_address") is None or not message_tokens.get("requester_address"):
-            return None
-        elif message_tokens.get(
-                "requester_port") is None or not message_tokens.get(
-            "requester_port") or int(message_tokens.get("requester_port")) <= 0:
-            return None
-        elif message_tokens.get("information") is None or not message_tokens.get("information"):
-            return None
-    except (TypeError, ValueError):
-        return None
 
-    return AckMessage(
-        broker_id=message_tokens.get("broker_id"), broker_address=message_tokens.get("broker_address"),
-        broker_port=message_tokens.get("broker_port"),
-        requested_operation=message_tokens.get("requested_operation"),
-        requester_address=message_tokens.get("requester_address"),
-        requester_port=message_tokens.get("requester_port"),
-        information=message_tokens.get("information"), well_formed=True
-    )
+    if message_tokens is None or not isinstance(message_tokens, dict):
+        return False
+
+    if message_tokens.keys() != {f.name for f in fields(AckMessage)}:
+        return False
+
+    if message_tokens["type"] != "ack":
+        return False
+
+    for str_field in [f.name for f in fields(AckMessage) if f.type in (str, 'str')]:
+        val = message_tokens[str_field]
+        if not isinstance(val, str) or not val.strip():
+            return False
+
+    try:
+        b_port = int(message_tokens["broker_port"])
+        r_port = int(message_tokens["requester_port"])
+
+        if not (0 < b_port <= 65535):
+            return False
+        if not (0 < r_port <= 65535):
+            return False
+
+    except (TypeError, ValueError):
+        return False
+
+    return True

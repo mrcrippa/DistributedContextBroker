@@ -17,6 +17,9 @@ def neighbour_broker_live_check():
 def process_broker_neighbors_response(rcv_msg: BrokerNeighborsResponseMessage):
     # add responder broker if not already in the broker neighbor table
 
+    if rcv_msg is None or rcv_msg is not isinstance(rcv_msg, BrokerNeighborsResponseMessage):
+        return
+
     if broker_neighbors.search_entry(rcv_msg.broker_id) is None:
         broker_neighbors.add_entry(BrokerNeighborInfo(broker_neighbor_id=rcv_msg.broker_id,
                                                       broker_neighbor_address=rcv_msg.broker_address,
@@ -41,9 +44,12 @@ def process_broker_neighbors_response(rcv_msg: BrokerNeighborsResponseMessage):
 def process_broker_neighbors_request(rcv_msg: BrokerNeighborsRequestMessage):
     # send a response to the requester
 
+    if rcv_msg is None or rcv_msg is not isinstance(rcv_msg, BrokerNeighborsRequestMessage):
+        return
+
     neighbors_response_msg = BrokerNeighborsResponseMessage(
         broker_id=this_broker_info["id"], broker_address=this_broker_info["address"],
-        broker_port=this_broker_info["port"], well_formed=True, broker_neighbors=broker_neighbors.get_table_as_list()
+        broker_port=this_broker_info["port"], broker_neighbors=broker_neighbors.get_table_as_list_of_dict()
     )
 
     send_message(neighbors_response_msg.as_json(), this_broker_info["address"],
