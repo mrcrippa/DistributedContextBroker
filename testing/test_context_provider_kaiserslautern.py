@@ -34,7 +34,7 @@ def send_info(sock, this_address, this_port_nr, broker_address, broker_port):
          "entity_type": "location", "scope": "weather_information",
          "validity_end": int(time.time() * 1000) + 900000, "data": msg_data})
 
-    print(dict_as_string)
+    print("Message sent:", dict_as_string)
 
     sock.sendto(str.encode(dict_as_string), (broker_address, broker_port))
 

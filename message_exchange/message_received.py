@@ -1,6 +1,7 @@
 import json
 
-from broker_messages.broker_message_classes import PingMessage, SubscribeMessage, UpdateMessage, BrokerNeighborsRequestMessage, BrokerNeighborsResponseMessage, BrokerSubscribeMessage
+from broker_messages.broker_message_classes import PingMessage, SubscribeMessage, UpdateMessage, \
+    BrokerNeighborsRequestMessage, BrokerNeighborsResponseMessage, BrokerSubscribeMessage, NackMessage
 from broker_messages.broker_message_verification import verify_ack_msg, verify_update_msg, verify_subscribe_msg, \
     verify_nack_msg, verify_ping_msg, verify_broker_neighbors_request_msg, verify_broker_neighbors_response_msg, verify_as_broker_subscribe_msg
 from context_management.update_service import process_update_message
@@ -34,6 +35,8 @@ def message_received(received_raw_data: str, sender_address: tuple):
         message_tokens = json.loads(received_raw_data)
         msg_type = message_tokens.get("type")
 
+        broker_logger.debug(message_tokens)
+
         if msg_type is not None:
             # verify the message further based on the type
             match msg_type:
@@ -65,7 +68,6 @@ def message_received(received_raw_data: str, sender_address: tuple):
 
                     if received_msg_is_valid:
                         # simple ping message, can be used to check the local time at the broker
-                        ## broker_logger.debug("PING message received from " + str(sender_address))
 
                         ping_msg = PingMessage(
                             broker_id=this_broker_info["id"],
@@ -82,8 +84,6 @@ def message_received(received_raw_data: str, sender_address: tuple):
 
                     if received_msg_is_valid:
                         # a subscription request received from a context consumer
-                        ##broker_logger.debug("SUBSCRIBE message received from " + str(sender_address))
-                        ##broker_logger.debug("raw data : " + str(received_raw_data))
                         process_subscribe_msg(
                             SubscribeMessage(
                                 entity_id=message_tokens.get("entity_id"),
@@ -97,22 +97,20 @@ def message_received(received_raw_data: str, sender_address: tuple):
 
                     if received_msg_is_valid:
                         # a context provider wants to update/add context information to this broker
-                        ## broker_logger.debug("UPDATE message received from " + str(sender_address))
-                        process_update_message(
-                            UpdateMessage(
+                        upd_msg = UpdateMessage(
                                 entity_id=message_tokens.get("entity_id"),
                                 entity_type=message_tokens.get("entity_type"),
                                 provider_id=message_tokens.get("provider_id"), scope=message_tokens.get("scope"),
                                 data=message_tokens.get("data"), validity_end=message_tokens.get("validity_end"),
                                 provider_address=message_tokens.get("provider_address"),
                                 provider_port=message_tokens.get("provider_port")
-                            ))
+                            )
+                        process_update_message(upd_msg)
                 case "broker_neighbors_request":
                     received_msg_is_valid = verify_broker_neighbors_request_msg(message_tokens)
 
                     if received_msg_is_valid:
                         # BROKER_NEIGHBORS_REQUEST messages get the list of broker neighbors in return
-                        ## broker_logger.debug("BROKER_NEIGHBORS_REQUEST message received from " + str(sender_address))
                         process_broker_neighbors_request(BrokerNeighborsRequestMessage(
                             broker_id=message_tokens.get("broker_id"),
                             broker_address=message_tokens.get("broker_address"),
@@ -122,8 +120,6 @@ def message_received(received_raw_data: str, sender_address: tuple):
 
                     if received_msg_is_valid:
                         # BROKER_NEIGHBORS_RESPONSE has a list of broker neighbors from another broker
-                        # broker_logger.debug("BROKER_NEIGHBORS_RESPONSE message received from " + str(sender_address))
-
                         process_broker_neighbors_response(BrokerNeighborsResponseMessage(
                             broker_id=message_tokens.get("broker_id"),
                             broker_address=message_tokens.get("broker_address"),
@@ -135,8 +131,6 @@ def message_received(received_raw_data: str, sender_address: tuple):
 
                     if received_msg_is_valid:
                         # a broker subscription request received from another broker
-                        ##broker_logger.debug("BROKER_SUBSCRIBE message received from " + str(sender_address))
-                        ##broker_logger.debug("raw data : " + str(received_raw_data))
                         process_broker_subscribe_msg(BrokerSubscribeMessage(
                             broker_id=message_tokens.get("broker_id"),
                             broker_address=message_tokens.get("broker_address"),

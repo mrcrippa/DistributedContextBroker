@@ -20,22 +20,6 @@ class BrokerNeighborInfo(object):
     # use 0 for neighbor considered offline, != 0 for neighbor considered online
     broker_neighbor_last_online_timestamp: int
 
-    def is_broker_neighbor_potentially_offline(self) -> bool:
-        if self.broker_neighbor_last_online_timestamp:
-            # time elapsed since the last contact with this neighbor
-            time_elapsed = broker_internal_clock.current_broker_time() - self.broker_neighbor_last_online_timestamp
-            # if time_elapsed less than 15s, neighbor is considered online
-            # between 15s and 30s, it's potentially offline
-            # more than 30s, it's considered offline, and set as offline
-            # remember, the questions is if the neighbor is **potentially** offline
-            if 15000 < time_elapsed < 30000:
-                return True
-            elif time_elapsed > 30000:
-                self.broker_neighbor_last_online_timestamp = 0
-            return False
-        else:
-            return False
-
 
 class BrokerNeighborTable(object):
     """
@@ -57,7 +41,8 @@ class BrokerNeighborTable(object):
     def add_entry(self, neighbor: BrokerNeighborInfo):
         if neighbor is not None:
             self._table_lock.acquire()
-            self._table[neighbor.broker_neighbor_id] = neighbor
+            if len(self._table) <= 20:
+                self._table[neighbor.broker_neighbor_id] = neighbor
             self._table_lock.release()
 
     def remove_entry(self, broker_neighbor_id: str):
@@ -85,9 +70,18 @@ class BrokerNeighborTable(object):
                                                              broker_port=this_broker_info["port"])
 
         for entry in self._table.values():
-            if entry.is_broker_neighbor_potentially_offline():
+
+            # time elapsed since the last contact with this neighbor
+            time_elapsed = broker_internal_clock.current_broker_time() - entry.broker_neighbor_last_online_timestamp
+            # if time_elapsed less than 15s, neighbor is considered online
+            # between 15s and 30s, it's potentially offline
+            # more than 30s, it's considered offline
+            if 15000 < time_elapsed < 30000:
                 send_message(neighbor_request_msg.as_json(), this_broker_info["address"],
                              (entry.broker_neighbor_address, entry.broker_neighbor_port))
+            elif time_elapsed > 30000:
+                self.remove_entry(entry.broker_neighbor_id)
+
         self._table_lock.release()
 
     def get_small_flooding_list(self, checked_brokers: list) -> list:
@@ -96,7 +90,7 @@ class BrokerNeighborTable(object):
         """
         result = []
 
-        broker_logger.debug(self.get_table_as_list_of_dict())
+        broker_logger.debug(str(self.get_table_as_list_of_dict()))
 
         self._table_lock.acquire()
         to_be_verified = list(self._table.keys())
@@ -105,7 +99,7 @@ class BrokerNeighborTable(object):
             if entry in to_be_verified:
                 to_be_verified.remove(entry)
 
-        while to_be_verified:
+        while to_be_verified and len(result) <= 5:
             selected = random.choice(to_be_verified)
             to_be_verified.remove(selected)
             if self._table[selected].broker_neighbor_last_online_timestamp:

@@ -26,7 +26,7 @@ def main():
          "entity_type": "location", "scope": "weather_information",
          "duration": 60})
 
-    print(dict_as_string)
+    print("Message sent: ", dict_as_string)
 
     consumer_sock.sendto(str.encode(dict_as_string), ("127.0.0.1", 52000))
 

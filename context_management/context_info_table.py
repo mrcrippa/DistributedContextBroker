@@ -9,7 +9,7 @@ class ContextInfo(object):
     """Class representing an entry in the context info table"""
 
     provider_id: str
-    provider_address : str
+    provider_address: str
     provider_port: int
     entity_id: str
     entity_type: str
@@ -41,11 +41,12 @@ class ContextInfoTable(object):
         if context_info_object is not None:
             self._table_lock.acquire()
             self._table[context_info_object.object_id] = context_info_object
-            valid_interval_time = (context_info_object.validity_end - broker_internal_clock.current_broker_time()) / 1000
+            valid_interval_time = (
+                                              context_info_object.validity_end - broker_internal_clock.current_broker_time()) / 1000
             self._entry_timers[context_info_object.object_id] = threading.Timer(valid_interval_time,
-                                                                                      ctx_timer_thread,
-                                                                                      [context_info_object.object_id,
-                                                                                       self])
+                                                                                ctx_timer_thread,
+                                                                                [context_info_object.object_id,
+                                                                                 self])
             self._entry_timers[context_info_object.object_id].start()
             self._table_lock.release()
 
@@ -74,7 +75,7 @@ class ContextInfoTable(object):
         result = ""
         self._table_lock.acquire()
         for entry in self._table.values():
-            result += '\n' + entry + " ||"
+            result += '\n' + str(entry) + " ||"
         self._table_lock.release()
         return result
 

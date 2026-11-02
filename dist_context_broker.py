@@ -8,6 +8,7 @@ import uuid
 from logging.handlers import QueueHandler, QueueListener
 from threading import Thread
 import global_data
+from global_data import this_broker_info
 
 from message_exchange.message_received import message_received
 from message_exchange.message_sender import *
@@ -84,6 +85,7 @@ def main():
     # start the neighbor live check regular timer
     threading.Timer(1, neighbour_broker_live_check).start()
 
+    print("Ready to run broker:",this_broker_info["id"],this_broker_info["address"], this_broker_info["port"])
     while True:
         received_raw_data, sender_address = broker_sock.recvfrom(1024)
         Thread(target=message_received,

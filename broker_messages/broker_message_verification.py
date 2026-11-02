@@ -242,7 +242,7 @@ def verify_broker_neighbors_response_msg(
     if not isinstance(message_tokens["broker_neighbors"], list):
         return False
 
-    for neighbor in message_tokens["checked_brokers"]:
+    for neighbor in message_tokens["broker_neighbors"]:
         if not isinstance(neighbor, dict) or not neighbor or neighbor.keys() != {"broker_id", "broker_address",
                                                                                  "broker_port"}:
             return False
