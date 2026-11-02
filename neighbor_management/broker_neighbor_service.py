@@ -1,7 +1,6 @@
 import threading
 
-from broker_messages.broker_neighbors_request_message import BrokerNeighborsRequestMessage
-from broker_messages.broker_neighbors_response_message import BrokerNeighborsResponseMessage
+from broker_messages.broker_message_classes import BrokerNeighborsRequestMessage, BrokerNeighborsResponseMessage
 from global_data import broker_neighbors, this_broker_info, broker_internal_clock
 from message_exchange.message_sender import send_message
 from neighbor_management.broker_neighbor_table import BrokerNeighborInfo

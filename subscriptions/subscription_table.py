@@ -2,7 +2,7 @@ import json
 import threading
 from dataclasses import field, dataclass
 
-from broker_messages.context_response_message import ContextResponseMessage
+from broker_messages.broker_message_classes import ContextResponseMessage
 from context_management.context_info_table import ContextInfo
 from global_data import broker_logger
 from message_exchange.message_sender import send_message

@@ -2,7 +2,7 @@ import random
 import threading
 from dataclasses import dataclass
 
-from broker_messages.broker_neighbors_request_message import BrokerNeighborsRequestMessage
+from broker_messages.broker_message_classes import BrokerNeighborsRequestMessage
 from global_data import broker_internal_clock, broker_logger, this_broker_info
 from message_exchange.message_sender import send_message
 

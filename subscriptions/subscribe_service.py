@@ -1,7 +1,5 @@
-from broker_messages.ack_message import AckMessage
-from broker_messages.broker_subscribe_message import BrokerSubscribeMessage
-from broker_messages.context_response_message import ContextResponseMessage
-from broker_messages.subscribe_message import SubscribeMessage
+from broker_messages.broker_message_classes import AckMessage, BrokerSubscribeMessage, ContextResponseMessage, \
+    SubscribeMessage
 from global_data import sub_table, broker_logger, ctx_table, \
     broker_neighbors, this_broker_info
 from message_exchange.message_sender import send_message

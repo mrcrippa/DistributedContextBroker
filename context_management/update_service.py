@@ -1,5 +1,4 @@
-from broker_messages.ack_message import AckMessage
-from broker_messages.update_message import UpdateMessage
+from broker_messages.broker_message_classes import AckMessage, UpdateMessage
 from context_management.context_info_table import ContextInfo
 from global_data import *
 from message_exchange.message_sender import send_message

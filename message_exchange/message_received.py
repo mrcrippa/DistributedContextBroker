@@ -1,16 +1,8 @@
 import json
 
-from broker_messages.ack_message import verify_message_tokens_as_ack_msg
-from broker_messages.broker_neighbors_request_message import verify_message_tokens_as_broker_neighbors_request_msg, \
-    BrokerNeighborsRequestMessage
-from broker_messages.broker_neighbors_response_message import verify_message_tokens_as_broker_neighbors_response_msg, \
-    BrokerNeighborsResponseMessage
-from broker_messages.broker_subscribe_message import verify_message_tokens_as_broker_subscribe_msg, \
-    BrokerSubscribeMessage
-from broker_messages.nack_message import NackMessage, process_message_tokens_as_nack_msg
-from broker_messages.ping_message import verify_message_tokens_as_ping_msg, PingMessage
-from broker_messages.subscribe_message import verify_message_tokens_as_subscribe_msg, SubscribeMessage
-from broker_messages.update_message import verify_message_tokens_as_update_msg, UpdateMessage
+from broker_messages.broker_message_classes import PingMessage, SubscribeMessage, UpdateMessage, BrokerNeighborsRequestMessage, BrokerNeighborsResponseMessage, BrokerSubscribeMessage
+from broker_messages.broker_message_verification import verify_ack_msg, verify_update_msg, verify_subscribe_msg, \
+    verify_nack_msg, verify_ping_msg, verify_broker_neighbors_request_msg, verify_broker_neighbors_response_msg, verify_as_broker_subscribe_msg
 from context_management.update_service import process_update_message
 from global_data import broker_logger, broker_internal_clock, this_broker_info
 from message_exchange.message_sender import send_message
@@ -46,7 +38,7 @@ def message_received(received_raw_data: str, sender_address: tuple):
             # verify the message further based on the type
             match msg_type:
                 case "ack":
-                    received_msg_is_valid = verify_message_tokens_as_ack_msg(message_tokens)
+                    received_msg_is_valid = verify_ack_msg(message_tokens)
                     # as of right now, there is no situation where a Broker would receive an ACK
                     # ack_msg = AckMessage(
                     #     broker_id=message_tokens.get("broker_id"), broker_address=message_tokens.get("broker_address"),
@@ -57,7 +49,7 @@ def message_received(received_raw_data: str, sender_address: tuple):
                     #     information=message_tokens.get("information")
                     # )
                 case "nack":
-                    received_msg_is_valid = process_message_tokens_as_nack_msg(message_tokens)
+                    received_msg_is_valid = verify_nack_msg(message_tokens)
                     # as of right now, there is no situation where a Broker would receive an ACK
                     # NackMessage(
                     #   broker_id=message_tokens.get("broker_id"), broker_address=message_tokens.get("broker_address"),
@@ -69,7 +61,7 @@ def message_received(received_raw_data: str, sender_address: tuple):
                     # )
 
                 case "ping":
-                    received_msg_is_valid = verify_message_tokens_as_ping_msg(message_tokens)
+                    received_msg_is_valid = verify_ping_msg(message_tokens)
 
                     if received_msg_is_valid:
                         # simple ping message, can be used to check the local time at the broker
@@ -86,7 +78,7 @@ def message_received(received_raw_data: str, sender_address: tuple):
                         send_message(ping_msg.as_json(), this_broker_info["address"],
                                      (ping_msg.requester_address, ping_msg.requester_port))
                 case "subscribe":
-                    received_msg_is_valid = verify_message_tokens_as_subscribe_msg(message_tokens)
+                    received_msg_is_valid = verify_subscribe_msg(message_tokens)
 
                     if received_msg_is_valid:
                         # a subscription request received from a context consumer
@@ -101,7 +93,7 @@ def message_received(received_raw_data: str, sender_address: tuple):
                                 subscriber_port=message_tokens.get("subscriber_port")
                             ))
                 case "update":
-                    received_msg_is_valid = verify_message_tokens_as_update_msg(message_tokens)
+                    received_msg_is_valid = verify_update_msg(message_tokens)
 
                     if received_msg_is_valid:
                         # a context provider wants to update/add context information to this broker
@@ -116,7 +108,7 @@ def message_received(received_raw_data: str, sender_address: tuple):
                                 provider_port=message_tokens.get("provider_port")
                             ))
                 case "broker_neighbors_request":
-                    received_msg_is_valid = verify_message_tokens_as_broker_neighbors_request_msg(message_tokens)
+                    received_msg_is_valid = verify_broker_neighbors_request_msg(message_tokens)
 
                     if received_msg_is_valid:
                         # BROKER_NEIGHBORS_REQUEST messages get the list of broker neighbors in return
@@ -126,7 +118,7 @@ def message_received(received_raw_data: str, sender_address: tuple):
                             broker_address=message_tokens.get("broker_address"),
                             broker_port=message_tokens.get("broker_port")))
                 case "broker_neighbors_response":
-                    received_msg_is_valid = verify_message_tokens_as_broker_neighbors_response_msg(message_tokens)
+                    received_msg_is_valid = verify_broker_neighbors_response_msg(message_tokens)
 
                     if received_msg_is_valid:
                         # BROKER_NEIGHBORS_RESPONSE has a list of broker neighbors from another broker
@@ -139,7 +131,7 @@ def message_received(received_raw_data: str, sender_address: tuple):
                             broker_neighbors=message_tokens.get("broker_neighbors", [])
                         ))
                 case "broker_subscribe":
-                    received_msg_is_valid = verify_message_tokens_as_broker_subscribe_msg(message_tokens)
+                    received_msg_is_valid = verify_as_broker_subscribe_msg(message_tokens)
 
                     if received_msg_is_valid:
                         # a broker subscription request received from another broker
