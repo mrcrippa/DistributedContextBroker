@@ -10,7 +10,7 @@ def neighbour_broker_live_check():
     # checking if any of your neighbors is offline, by requesting their list of neighbors
     broker_neighbors.check_table_for_potentially_offline_brokers()
 
-    threading.Timer(30, neighbour_broker_live_check).start()
+    threading.Timer(15, neighbour_broker_live_check).start()
 
 
 def process_broker_neighbors_response(rcv_msg: BrokerNeighborsResponseMessage):

@@ -8,22 +8,26 @@ import openmeteo_requests
 
 
 def send_info(sock, this_address, this_port_nr, broker_address, broker_port):
-    params = {
-        "latitude": 41.1496,
-        "longitude": -8.611,
-        "current": "temperature_2m",
-        "timezone": "Europe/Berlin",
-        "forecast_days": 1,
-    }
-    responses = openmeteo_requests.Client().weather_api("https://api.open-meteo.com/v1/forecast", params=params)
+    # when you want real time weather data
 
-    response = responses[0]
+    # params = {
+    #     "latitude": 41.1496,
+    #     "longitude": -8.611,
+    #     "current": "temperature_2m",
+    #     "timezone": "Europe/Berlin",
+    #     "forecast_days": 1,
+    # }
+    # responses = openmeteo_requests.Client().weather_api("https://api.open-meteo.com/v1/forecast", params=params)
+    #
+    # response = responses[0]
+    #
+    # msg_data = f"lat : {response.Latitude():.6f} N "
+    # msg_data += f"lon : {response.Longitude():.6f} E "
+    # msg_data += f"elevation :  {response.Elevation()}m "
+    # msg_data += f"measurement_time : {time.ctime(response.Current().Time())} {response.TimezoneAbbreviation()} "
+    # msg_data += f"measured_temperature_at_2m: {response.Current().Variables(0).Value()}"
 
-    msg_data = f"lat : {response.Latitude():.6f} N\n"
-    msg_data += f"lon : {response.Longitude():.6f} E\n"
-    msg_data += f"elevation :  {response.Elevation()}m\n"
-    msg_data += f"measurement_time : {time.ctime(response.Current().Time())} {response.TimezoneAbbreviation()}\n"
-    msg_data += f"measured_temperature_at_2m: {response.Current().Variables(0).Value()}"
+    msg_data = "lat : 41.147305 N lon : -8.640409 E elevation :  92.0m measurement_time : Tue Nov  3 19:45:00 2026 b'GMT+1' measured_temperature_at_2m: 16.016000747680664"
 
     dict_as_string = json.dumps(
         {"type": "update", "provider_id": "test_provider_porto",
@@ -31,7 +35,7 @@ def send_info(sock, this_address, this_port_nr, broker_address, broker_port):
          "entity_type": "location", "scope": "weather_information",
          "validity_end": int(time.time() * 1000) + 900000, "data": msg_data})
 
-    print("Message sent:", dict_as_string)
+    # print("Message sent:", dict_as_string)
 
     sock.sendto(str.encode(dict_as_string), (broker_address, broker_port))
 
@@ -59,7 +63,7 @@ def main():
 
     while True:
         received_raw_data, sender_address = provider_sock.recvfrom(1024)
-        print("received_raw_data : " + str(received_raw_data) + " sender_address : " + str(sender_address))
+        # print("received_raw_data : " + str(received_raw_data) + " sender_address : " + str(sender_address))
 
 
 main()

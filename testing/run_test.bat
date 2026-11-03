@@ -17,3 +17,4 @@ start python .\testing\test_context_provider_porto.py
 timeout /t 5 /nobreak >nul
 start python .\testing\test_context_consumer_porto.py
 timeout /t 5 /nobreak >nul
+start python .\testing\test_context_consumer_kaiserslautern.py

@@ -139,7 +139,7 @@ def message_received(received_raw_data: str, sender_address: tuple):
                             duration=message_tokens.get("duration"), scope=message_tokens.get("scope"),
                             subscriber_address=message_tokens.get("subscriber_address"),
                             subscriber_port=message_tokens.get("subscriber_port"),
-                            checked_brokers=message_tokens.get_token("checked_brokers"),
+                            checked_brokers=message_tokens.get("checked_brokers"),
                             max_hops=message_tokens.get("max_hops"),
                         ))
 

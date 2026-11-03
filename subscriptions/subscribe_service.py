@@ -7,6 +7,7 @@ from subscriptions.subscription_table import Subscription
 
 
 def process_broker_subscribe_msg(rcv_msg: BrokerSubscribeMessage):
+
     if rcv_msg is not None and isinstance(rcv_msg, BrokerSubscribeMessage):
         if not check_for_local_subscription(rcv_msg.entity_id, rcv_msg.entity_type, rcv_msg.scope,
                                             rcv_msg.subscriber_address,
@@ -14,17 +15,18 @@ def process_broker_subscribe_msg(rcv_msg: BrokerSubscribeMessage):
 
             if rcv_msg.broker_id != this_broker_info["id"]:
                 broker_neighbors.set_entry_online(rcv_msg.broker_id)
-
+            broker_logger.debug("here")
             checked_brokers = [this_broker_info["id"]]
-
+            broker_logger.debug("here")
             for b_id in rcv_msg.checked_brokers:
                 if b_id not in checked_brokers:
                     checked_brokers.append(b_id)
-
+            broker_logger.debug("here")
             broker_logger.debug(checked_brokers)
             max_hops = rcv_msg.max_hops - 1
-
+            broker_logger.debug("here")
             if max_hops > 0:
+                broker_logger.debug("here")
                 subscription_broker_network_search(max_hops, checked_brokers, rcv_msg.entity_id, rcv_msg.entity_type,
                                                    rcv_msg.scope,
                                                    rcv_msg.subscriber_address, rcv_msg.subscriber_port,
@@ -36,6 +38,7 @@ def subscription_broker_network_search(max_hops: int, checked_brokers: list, ent
                                        subscriber_address: str,
                                        subscriber_port: int, duration: int):
     small_flood = broker_neighbors.get_small_flooding_list(checked_brokers)
+    broker_logger.debug(small_flood)
 
     for neighbor in small_flood:
         checked_brokers.append(neighbor.broker_neighbor_id)
@@ -70,6 +73,7 @@ def subscription_broker_network_search(max_hops: int, checked_brokers: list, ent
 
 def check_for_local_subscription(entity_id: str, entity_type: str, scope: str, subscriber_address: str,
                                  subscriber_port: int, duration: int) -> bool:
+
     # returns True if the subscription can be handled locally, if not, then return False
 
     # check if there is already data in the context info table matching the subscription

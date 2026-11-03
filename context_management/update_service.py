@@ -21,8 +21,8 @@ def process_update_message(rcv_msg: UpdateMessage):
         # add new data
         ctx_table.add_entry(ctx_data)
 
-        broker_logger.debug("ctx_table : " + ctx_table.print())
-        broker_logger.debug("sub_table : " + sub_table.print())
+        # broker_logger.debug("ctx_table : " + ctx_table.print())
+        # broker_logger.debug("sub_table : " + sub_table.print())
 
         # send an ACK message confirming the update
         ack_msg = AckMessage(

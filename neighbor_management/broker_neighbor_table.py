@@ -30,39 +30,48 @@ class BrokerNeighborTable(object):
         self._table = {}
         self._table_lock = threading.Lock()
 
+
     def set_entry_online(self, broker_neighbor_id: str):
         """ searches for and marks a neighbor as online, if the neighbor does not exist, nothing happens """
+        broker_logger.debug("lock acquired")
         self._table_lock.acquire()
         if broker_neighbor_id is not None and broker_neighbor_id in self._table:
             self._table[
                 broker_neighbor_id].broker_neighbor_last_online_timestamp = broker_internal_clock.current_broker_time()
         self._table_lock.release()
+        broker_logger.debug("lock release")
 
     def add_entry(self, neighbor: BrokerNeighborInfo):
         if neighbor is not None:
+            broker_logger.debug("lock acquired")
             self._table_lock.acquire()
-            if len(self._table) <= 20:
-                self._table[neighbor.broker_neighbor_id] = neighbor
+            self._table[neighbor.broker_neighbor_id] = neighbor
             self._table_lock.release()
+            broker_logger.debug("lock release")
 
     def remove_entry(self, broker_neighbor_id: str):
         """removes an entry from the table, if the entry doesn't exist, then nothing happens"""
+        broker_logger.debug("lock acquired")
         self._table_lock.acquire()
         if broker_neighbor_id is not None and broker_neighbor_id in self._table:
             del self._table[broker_neighbor_id]
         self._table_lock.release()
+        broker_logger.debug("lock release")
 
     def search_entry(self, broker_neighbor_id: str) -> BrokerNeighborInfo | None:
         """searches for any matching neighbor from the table"""
+        broker_logger.debug("lock acquired")
         self._table_lock.acquire()
         result = None
         if broker_neighbor_id is not None and broker_neighbor_id in self._table:
             result = self._table[broker_neighbor_id]
         self._table_lock.release()
+        broker_logger.debug("lock release")
         return result
 
     def check_table_for_potentially_offline_brokers(self):
         """checks which neighbors might be potentially offline, and sends them a neighbors_request"""
+        broker_logger.debug("lock acquired")
         self._table_lock.acquire()
 
         neighbor_request_msg = BrokerNeighborsRequestMessage(broker_id=this_broker_info["id"],
@@ -80,9 +89,10 @@ class BrokerNeighborTable(object):
                 send_message(neighbor_request_msg.as_json(), this_broker_info["address"],
                              (entry.broker_neighbor_address, entry.broker_neighbor_port))
             elif time_elapsed > 30000:
-                self.remove_entry(entry.broker_neighbor_id)
+                entry.broker_neighbor_last_online_timestamp = 0
 
         self._table_lock.release()
+        broker_logger.debug("lock release")
 
     def get_small_flooding_list(self, checked_brokers: list) -> list:
         """returns a list of neighbors to be used for the broker subscribe procedure
@@ -92,6 +102,7 @@ class BrokerNeighborTable(object):
 
         broker_logger.debug(str(self.get_table_as_list_of_dict()))
 
+        broker_logger.debug("lock acquired")
         self._table_lock.acquire()
         to_be_verified = list(self._table.keys())
 
@@ -105,12 +116,14 @@ class BrokerNeighborTable(object):
             if self._table[selected].broker_neighbor_last_online_timestamp:
                 result.append(self._table[selected])
         self._table_lock.release()
+        broker_logger.debug("lock release")
 
         return result
 
     def get_table_as_list_of_dict(self) -> list:
         """returns the table as a list, only neighbors that are online"""
         temp_list = []
+        broker_logger.debug("lock acquired")
         self._table_lock.acquire()
         for entry in self._table.values():
             if entry.broker_neighbor_last_online_timestamp:
@@ -119,5 +132,6 @@ class BrokerNeighborTable(object):
                              "broker_port": entry.broker_neighbor_port}
                 temp_list.append(temp_dict)
         self._table_lock.release()
+        broker_logger.debug("lock release")
 
         return temp_list

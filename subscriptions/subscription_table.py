@@ -99,7 +99,7 @@ class SubscriptionTable(object):
         result = ""
         self._table_lock.acquire()
         for sub in self._table.values():
-            result += '\n' + sub + " ||"
+            result += '\n' + str(sub) + " ||"
         self._table_lock.release()
         return result
 
