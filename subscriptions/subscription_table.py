@@ -2,7 +2,7 @@ import json
 import threading
 from dataclasses import field, dataclass
 
-from broker_messages.broker_message_classes import ContextResponseMessage
+from broker_messages.broker_message_classes import ContextInfoMessage
 from context_management.context_info_table import ContextInfo
 from global_data import broker_logger
 from message_exchange.message_sender import send_message
@@ -78,19 +78,19 @@ class SubscriptionTable(object):
             if sub.entity_id == ctx_data.entity_id and sub.entity_type == ctx_data.entity_type and sub.scope == ctx_data.scope:
                 # broker_logger.debug(
                 #  "sending data to : " + str((sub.get_subscriber_address(), sub.get_subscriber_port())))
-                context_response_msg = ContextResponseMessage(broker_id=this_broker_info["id"],
-                                                              broker_address=this_broker_info["address"],
-                                                              broker_port=this_broker_info["port"],
-                                                              entity_id=ctx_data.entity_id,
-                                                              entity_type=ctx_data.entity_type,
-                                                              provider_id=ctx_data.provider_id,
-                                                              provider_address=ctx_data.provider_address,
-                                                              provider_port=ctx_data.provider_port,
-                                                              scope=ctx_data.scope,
-                                                              data=ctx_data.data,
-                                                              validity_end=ctx_data.validity_end)
+                context_info_msg = ContextInfoMessage(broker_id=this_broker_info["id"],
+                                                          broker_address=this_broker_info["address"],
+                                                          broker_port=this_broker_info["port"],
+                                                          entity_id=ctx_data.entity_id,
+                                                          entity_type=ctx_data.entity_type,
+                                                          provider_id=ctx_data.provider_id,
+                                                          provider_address=ctx_data.provider_address,
+                                                          provider_port=ctx_data.provider_port,
+                                                          scope=ctx_data.scope,
+                                                          data=ctx_data.data,
+                                                          validity_end=ctx_data.validity_end)
 
-                send_message(context_response_msg.as_json(), this_broker_info["address"],
+                send_message(context_info_msg.as_json(), this_broker_info["address"],
                              (sub.subscriber_address, sub.subscriber_port))
 
         self._table_lock.release()

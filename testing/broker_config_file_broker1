@@ -6,7 +6,7 @@ host_broker_addr = 127.0.0.1
 port_broker_nr = 51000
 ##########################
 # name of the log file
-log_file_name = log_context_broker1
+log_file_name = .\testing\log_context_broker1
 ##########################
 # identifier for this broker, if value is 0 then a random one is generated
 broker_id = broker1_id

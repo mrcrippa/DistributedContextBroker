@@ -1,8 +1,19 @@
+"""
+This module contains all the data structures that will be shared among all modules
+
+Data Structures:
+--------
+this_broker_info
+broker_internal_clock
+broker_logger
+ctx_table
+sub_table
+broker_neighbors
+"""
+
 import logging
 
-"""
-File with all the data structures that will be shared among all modules
-"""
+
 ####################################
 # a dict with information about this specific broker ({"id": broker unique id, "address": address, "port": port})
 this_broker_info = {"id": "", "address": "", "port": 0}

@@ -1,5 +1,6 @@
 @echo off
 echo Launching multiple brokers, providers and consumers
+echo More info in the text_setup.txt file
 
 start python .\dist_context_broker.py -cfg_file .\testing\broker_config_file_broker1
 timeout /t 5 /nobreak >nul

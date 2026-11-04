@@ -1,4 +1,4 @@
-from broker_messages.broker_message_classes import AckMessage, BrokerSubscribeMessage, ContextResponseMessage, \
+from broker_messages.broker_message_classes import AckMessage, BrokerSubscribeMessage, ContextInfoMessage, \
     SubscribeMessage
 from global_data import sub_table, broker_logger, ctx_table, \
     broker_neighbors, this_broker_info
@@ -105,20 +105,20 @@ def check_for_local_subscription(entity_id: str, entity_type: str, scope: str, s
                      (ack_msg.requester_address, ack_msg.requester_port))
 
         # send data to the subscriber
-        context_response_msg = ContextResponseMessage(broker_id=this_broker_info["id"],
-                                                      broker_address=this_broker_info["address"],
-                                                      broker_port=this_broker_info["port"],
-                                                      entity_id=current_ctx_info.entity_id,
-                                                      entity_type=current_ctx_info.entity_type,
-                                                      provider_id=current_ctx_info.provider_id,
-                                                      provider_address=current_ctx_info.provider_address,
-                                                      provider_port=current_ctx_info.provider_port,
-                                                      scope=current_ctx_info.scope,
-                                                      data=current_ctx_info.data,
-                                                      validity_end=current_ctx_info.validity_end
-                                                      )
+        context_info_msg = ContextInfoMessage(broker_id=this_broker_info["id"],
+                                                  broker_address=this_broker_info["address"],
+                                                  broker_port=this_broker_info["port"],
+                                                  entity_id=current_ctx_info.entity_id,
+                                                  entity_type=current_ctx_info.entity_type,
+                                                  provider_id=current_ctx_info.provider_id,
+                                                  provider_address=current_ctx_info.provider_address,
+                                                  provider_port=current_ctx_info.provider_port,
+                                                  scope=current_ctx_info.scope,
+                                                  data=current_ctx_info.data,
+                                                  validity_end=current_ctx_info.validity_end
+                                                  )
 
-        send_message(context_response_msg.as_json(), this_broker_info["address"],
+        send_message(context_info_msg.as_json(), this_broker_info["address"],
                      (sub.subscriber_address, sub.subscriber_port))
         return True
 

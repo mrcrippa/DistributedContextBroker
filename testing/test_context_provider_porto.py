@@ -8,7 +8,8 @@ import openmeteo_requests
 
 
 def send_info(sock, this_address, this_port_nr, broker_address, broker_port):
-    # when you want real time weather data
+
+    # if you want real time weather data, you can use openmeteo
 
     # params = {
     #     "latitude": 41.1496,
@@ -29,6 +30,7 @@ def send_info(sock, this_address, this_port_nr, broker_address, broker_port):
 
     msg_data = "lat : 41.147305 N lon : -8.640409 E elevation :  92.0m measurement_time : Tue Nov  3 19:45:00 2026 b'GMT+1' measured_temperature_at_2m: 16.016000747680664"
 
+    # create an update message and serialize it into JSON
     dict_as_string = json.dumps(
         {"type": "update", "provider_id": "test_provider_porto",
          "entity_id": "Porto", "provider_address": "127.0.0.1", "provider_port": this_port_nr,

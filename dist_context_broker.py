@@ -17,6 +17,7 @@ from neighbor_management.broker_neighbor_service import neighbour_broker_live_ch
 
 
 def main():
+    # command line parameters
     args = sys.argv[1:]
     if len(args) != 2 or args[0] != '-cfg_file':
         sys.exit('Usage: %s -cfg_file config_file_location' % sys.argv[0])
@@ -26,11 +27,12 @@ def main():
     config.read(args[1])
 
     if config['config_values']['broker_id'] == '0':
+        # generates random broker id using uuid
         global_data.this_broker_info["id"] = str(uuid.uuid4()).replace('-', '')[:8]
     else:
         global_data.this_broker_info["id"] = config['config_values']['broker_id']
 
-    # set up logging environment
+    # set up logging environment, with a console handler and a file handler
     log_queue = queue.Queue(-1)
     queue_handler = QueueHandler(log_queue)
     broker_logger.addHandler(queue_handler)
@@ -48,10 +50,11 @@ def main():
     listener.start()
 
     # create a new socket using UDP
-
     broker_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     socket_connected = False
 
+    # try to connect using broker port given in config file
+    # if no broker port specified in config_file, choose a random port
     port_broker_nr = int(config['config_values']['port_broker_nr'])
     while not socket_connected:
         if config['config_values']['port_broker_nr'] == "0":
@@ -72,7 +75,6 @@ def main():
     global_data.broker_internal_clock.time_correction_with_ntp()
 
     # get list of start neighbors
-    # print(config['config_values']['start_neighbors'])
     start_neighbours = json.loads(config['config_values']['start_neighbors'])
 
     for index in range(0, len(start_neighbours), 3):

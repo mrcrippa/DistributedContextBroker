@@ -1,3 +1,10 @@
+"""
+This module contains a class representing the internal clock for this broker
+
+Classes:
+--------
+BrokerClock
+"""
 import threading
 import time
 
@@ -14,14 +21,26 @@ class BrokerClock(object):
 
         If the NTP system is used, a regular Timer thread will be set to adjust the internal clock
 
+        TIme is given as milliseconds since the Epoch (Unix time)
+
         [1] https://en.wikipedia.org/wiki/Network_Time_Protocol
+
+        Attributes
+        ----------
+        _time_correction : int
+            time correction value added to the internal clock, in ms
+        _with_ntp : bool
+            True if the NTP system is to be used, False otherwise
     """
 
     def __init__(self, with_ntp: bool = False):
         """
         Initializes the instance.
 
-        :param with_ntp: True if the NTP system is to be used, False otherwise
+        Parameters
+        ----------
+        with_ntp : bool
+            set to True if the NTP system is to be used, default is False
         """
 
         self._time_correction = 0
@@ -51,7 +70,10 @@ class BrokerClock(object):
         """
         Utility function used to get the current time from the internal clock for this broker
 
-        :return: the current time from the internal clock in milliseconds since the Epoch (Unix time)
+        Returns
+        -------
+        int
+            the current time from the internal clock in milliseconds since the Epoch (Unix time)
 
         """
         return round((time.time() * 1000) + self._time_correction)
