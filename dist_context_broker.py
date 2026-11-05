@@ -1,3 +1,12 @@
+"""
+The main module for the Peer-to-Peer Distributed Context Broker.
+
+Here the initial running configuration will be set up, including reading the config file, setting up a UDP socket,
+initializing internal services and starting the main loop.
+
+"""
+
+
 import configparser
 import json
 import logging
@@ -10,10 +19,10 @@ from threading import Thread
 import global_data
 from global_data import this_broker_info
 
-from message_exchange.message_received import message_received
+from message_exchange.message_received import process_received_message
 from message_exchange.message_sender import *
 from neighbor_management.broker_neighbor_table import BrokerNeighborInfo
-from neighbor_management.broker_neighbor_service import neighbour_broker_live_check
+from neighbor_management.broker_neighbor_service import broker_neighbor_still_online_check
 
 
 def main():
@@ -30,6 +39,7 @@ def main():
         # generates random broker id using uuid
         global_data.this_broker_info["id"] = str(uuid.uuid4()).replace('-', '')[:8]
     else:
+        # read broker id from config file
         global_data.this_broker_info["id"] = config['config_values']['broker_id']
 
     # set up logging environment, with a console handler and a file handler
@@ -85,12 +95,12 @@ def main():
         global_data.broker_neighbors.add_entry(neighbor)
 
     # start the neighbor live check regular timer
-    threading.Timer(1, neighbour_broker_live_check).start()
+    threading.Timer(1, broker_neighbor_still_online_check).start()
 
     print("Ready to run broker:",this_broker_info["id"],this_broker_info["address"], this_broker_info["port"])
     while True:
         received_raw_data, sender_address = broker_sock.recvfrom(1024)
-        Thread(target=message_received,
+        Thread(target=process_received_message,
                args=[received_raw_data, sender_address]).start()
 
 main()

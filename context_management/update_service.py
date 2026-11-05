@@ -1,5 +1,5 @@
 """
-This module contains a function processes update messages, updating the context_info_table and
+This module contains a function that processes update messages, updating the context_info_table and
 notifying subscribers about this update
 
 Functions:
@@ -25,7 +25,7 @@ def process_update_message(rcv_msg: UpdateMessage):
         a dataclass instance representing the received update message
     """
 
-    # input parameters are valid
+    # are the input parameters valid?
     if rcv_msg is not None and isinstance(rcv_msg, UpdateMessage):
 
         # create ContextInfo object
@@ -56,4 +56,4 @@ def process_update_message(rcv_msg: UpdateMessage):
                      (ack_msg.requester_address, ack_msg.requester_port))
 
         # if there are any subscriptions to this data, then notify all subscribers
-        sub_table.notify_subscribers(this_broker_info, ctx_data)
+        sub_table.notify_subscribers(ctx_data)

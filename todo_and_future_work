@@ -1,0 +1,11 @@
+TODO:
+
+
+TODO Future Work:
+     - Currently, a neighbor is added to the broker neighbor table and is never removed. It might be marked offline, but
+     never removed. The table can grow as much as it wants, without any restrictions. This work for simple setups, but
+     some form of size limitation and removal of neighbors if they remain offline for too long needs to be added.
+     - Another possible change is for brokers to only put a subset of neighbors in the BrokerNeighborsResponseMessage.
+     This change combine with the previous item would reduce the view of the network each broker has, but save memory usage
+
+

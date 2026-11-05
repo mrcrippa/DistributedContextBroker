@@ -1,3 +1,10 @@
+"""
+This module contains a function that processes all messages received by this broker
+
+Classes
+--------
+process_received_message
+"""
 import json
 
 from broker_messages.broker_message_classes import PingMessage, SubscribeMessage, UpdateMessage, \
@@ -12,37 +19,44 @@ from neighbor_management.broker_neighbor_service import process_broker_neighbors
 from subscriptions.subscribe_service import process_broker_subscribe_msg, process_subscribe_msg
 
 
-def message_received(received_raw_data: str, sender_address: tuple):
+def process_received_message(received_raw_data: str, sender_address: tuple):
     """
     When the Broker receives a message, this function is called in a separate thread from main_broker
 
-    It checks if the message is well-formed, then calls the appropriate function for further processing.
+    It checks if the message is properly formed, then calls the appropriate function for further processing.
 
-    The accepted raw messages are valid JSON strings that will be converted into Python dicts.
+    The accepted raw messages are valid JSON strings.
 
     One of the keys of this dict must be "type", which has the following accepted values:
-    "ack", "nack", "ping", "subscribe", "update", "context_response",
+    "ack", "nack", "ping", "subscribe", "update", "context_info",
     "broker_neighbors_request", "broker_neighbors_response", "broker_subscribe"
 
-    :param received_raw_data: the raw string received from the broker through the UDP socket in main_broker
-    :param sender_address: the address of the sender of this message, in format (host,port)
+    Parameters
+    ----------
+    received_raw_data: str
+        the raw string received from the broker through the UDP socket in main_broker
+    sender_address : tuple
+        the address of the sender of this message, in format (host,port)
     """
 
-    # check if the raw data is valid JSON string
+
     received_msg_is_valid = False
 
     try:
+        # check if the raw data is valid JSON string
         message_fields = json.loads(received_raw_data)
         msg_type = message_fields.get("type")
 
         broker_logger.debug(message_fields)
 
+        # if there is a message filed called type
         if msg_type is not None:
             # verify the message further based on the type
             match msg_type:
                 case "ack":
+                    # as of right now, there is no situation where a Broker would receive an ack
                     received_msg_is_valid = verify_ack_msg(message_fields)
-                    # as of right now, there is no situation where a Broker would receive an ACK
+
                     # ack_msg = AckMessage(
                     #     broker_id=message_fields.get("broker_id"), broker_address=message_fields.get("broker_address"),
                     #     broker_port=message_fields.get("broker_port"),
@@ -52,8 +66,9 @@ def message_received(received_raw_data: str, sender_address: tuple):
                     #     information=message_fields.get("information")
                     # )
                 case "nack":
+                    # as of right now, there is no situation where a Broker would receive a nack
                     received_msg_is_valid = verify_nack_msg(message_fields)
-                    # as of right now, there is no situation where a Broker would receive an ACK
+
                     # NackMessage(
                     #   broker_id=message_fields.get("broker_id"), broker_address=message_fields.get("broker_address"),
                     #  broker_port=message_fields.get("broker_port"),
@@ -67,7 +82,6 @@ def message_received(received_raw_data: str, sender_address: tuple):
                     received_msg_is_valid = verify_ping_msg(message_fields)
 
                     if received_msg_is_valid:
-                        # simple ping message, can be used to check the local time at the broker
 
                         ping_msg = PingMessage(
                             broker_id=this_broker_info["id"],
@@ -110,7 +124,7 @@ def message_received(received_raw_data: str, sender_address: tuple):
                     received_msg_is_valid = verify_broker_neighbors_request_msg(message_fields)
 
                     if received_msg_is_valid:
-                        # BROKER_NEIGHBORS_REQUEST messages get the list of broker neighbors in return
+                        # broker_neighbors_request messages get the list of broker neighbors in return
                         process_broker_neighbors_request(BrokerNeighborsRequestMessage(
                             broker_id=message_fields.get("broker_id"),
                             broker_address=message_fields.get("broker_address"),
@@ -119,7 +133,7 @@ def message_received(received_raw_data: str, sender_address: tuple):
                     received_msg_is_valid = verify_broker_neighbors_response_msg(message_fields)
 
                     if received_msg_is_valid:
-                        # BROKER_NEIGHBORS_RESPONSE has a list of broker neighbors from another broker
+                        # broker_neighbors_response has a list of broker neighbors from another broker
                         process_broker_neighbors_response(BrokerNeighborsResponseMessage(
                             broker_id=message_fields.get("broker_id"),
                             broker_address=message_fields.get("broker_address"),
@@ -144,10 +158,11 @@ def message_received(received_raw_data: str, sender_address: tuple):
                         ))
 
     except json.JSONDecodeError:
+        #if the json is invalid
         broker_logger.error("Message decode error")
 
     if not received_msg_is_valid:
-        # if the message is not well-formed, send a NACK message
+        # if the message is not well-formed, send a nack message
         broker_logger.debug(
             "received message not well formed from" + str(sender_address) + "  raw data : " + str(received_raw_data))
 

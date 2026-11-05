@@ -295,7 +295,7 @@ class BrokerSubscribeMessage:
         duration : int
             for how many seconds should this subscription active - should be an integer > 0
         max_hops: int
-            maximum number of hops allowed for this search. If 0, then this broker searches for a match locally but does
+            maximum number of hops allowed for this search. If <= 0, then this broker searches for a match locally but does
             not forward the broker subscribe any further
         checked_brokers : list
             list with the broker ids of all broker already visited by the search. This avoids repeated requests. (default is [])
