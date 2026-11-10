@@ -27,7 +27,7 @@ def process_broker_subscribe_msg(rcv_msg: BrokerSubscribeMessage):
 
         More info about BrokerSubscribeMessage can be found in broker_messages.broker_message_classes.BrokerSubscribeMessage
 
-        This distributed broker uses random walks with small local flooding as its search method. More info about this method
+        This distributed broker uses random walks with shallow local flooding as its search method. More info about this method
         can be found in "Peer_to_Peer_Distributed_Context_Broker.pdf"
 
         Parameters
@@ -102,11 +102,11 @@ def subscription_search_in_broker_network(max_hops: int, checked_brokers: list, 
             for how many seconds should this subscription active - should be an integer > 0
 
     """
-    # get a list of neighbors for the random walk and small local flooding
-    small_local_flood = broker_neighbors.get_small_local_flooding_list(checked_brokers)
-    broker_logger.debug(small_local_flood)
+    # get a list of neighbors for the random walk and shallow local flooding
+    shallow_local_flood = broker_neighbors.get_shallow_local_flooding_list(checked_brokers)
+    broker_logger.debug(shallow_local_flood)
 
-    for neighbor in small_local_flood:
+    for neighbor in shallow_local_flood:
         # add broker in the list to the list of already queried brokers
         checked_brokers.append(neighbor.broker_neighbor_id)
 
@@ -123,23 +123,23 @@ def subscription_search_in_broker_network(max_hops: int, checked_brokers: list, 
                                                   duration=duration,
                                                   max_hops=max_hops, checked_brokers=checked_brokers)
 
-    if small_local_flood:
-        # the first broker in the small local flood list will be part of the random walk
+    if shallow_local_flood:
+        # the first broker in the shallow local flood list will be part of the random walk
         # this means it will forward the request if necessary
         send_message(broker_subscribe_msg.as_json(), this_broker_info["address"],
-                     (small_local_flood[0].broker_neighbor_address,
-                      small_local_flood[0].broker_neighbor_port))
-        small_local_flood.pop(0)
+                     (shallow_local_flood[0].broker_neighbor_address,
+                      shallow_local_flood[0].broker_neighbor_port))
+        shallow_local_flood.pop(0)
 
     broker_subscribe_msg.max_hops = 0
     msg_string = broker_subscribe_msg.as_json()
-    while small_local_flood:
-        # other brokers in the small local flood list will only be queried
+    while shallow_local_flood:
+        # other brokers in the shallow local flood list will only be queried
         # and not forward the request any further
         send_message(msg_string, this_broker_info["address"],
-                     (small_local_flood[0].broker_neighbor_address,
-                      small_local_flood[0].broker_neighbor_port))
-        small_local_flood.pop(0)
+                     (shallow_local_flood[0].broker_neighbor_address,
+                      shallow_local_flood[0].broker_neighbor_port))
+        shallow_local_flood.pop(0)
 
 
 def check_for_local_context_info(entity_id: str, entity_type: str, scope: str, subscriber_address: str,

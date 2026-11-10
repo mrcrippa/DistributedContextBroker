@@ -7,5 +7,10 @@ TODO Future Work:
      some form of size limitation and removal of neighbors if they remain offline for too long needs to be added.
      - Another possible change is for brokers to only put a subset of neighbors in the BrokerNeighborsResponseMessage.
      This change combine with the previous item would reduce the view of the network each broker has, but save memory usage
+     - Updates are processed and stay in the same broker. Could there be a replication or caching system? Redirecting updates
+     to Brokers closer to the subscribers.
+     - the random walk with shallow local floods implemented here are quite basic. There are two possible improvements:
+     1 - run multiple random walks simultaneously and 2 - increase the depth of the shallow floods
+
 
 

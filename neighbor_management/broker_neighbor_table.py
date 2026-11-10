@@ -199,9 +199,9 @@ class BrokerNeighborTable(object):
         with self._table_lock:
             self._check_table_for_potentially_offline_brokers()
 
-    def _get_small_flooding_list(self, checked_brokers: list) -> list:
+    def _get_shallow_local_flooding_list(self, checked_brokers: list) -> list:
         """
-            Internal version of get_small_flooding_list, for thread safety
+            Internal version of get_shallow_local_flooding_list, for thread safety
 
             Parameters
             ----------
@@ -223,7 +223,7 @@ class BrokerNeighborTable(object):
             if entry in to_be_verified:
                 to_be_verified.remove(entry)
 
-        # creates a list of up to 5 broker ids as the small flooding list
+        # creates a list of up to 5 broker ids as the shallow flooding list
         # the choice is random
         # the neighbor must be considered online
         while to_be_verified and len(result) <= 5:
@@ -234,7 +234,7 @@ class BrokerNeighborTable(object):
 
         return result
 
-    def get_small_local_flooding_list(self, checked_brokers: list) -> list:
+    def get_shallow_local_flooding_list(self, checked_brokers: list) -> list:
         """
             This function is used during the subscription search between brokers (check subscriptions.subscribe_service.subscription_broker_network_search)
 
@@ -252,7 +252,7 @@ class BrokerNeighborTable(object):
         """
         result = []
         with self._table_lock:
-            result = self._get_small_flooding_list(checked_brokers)
+            result = self._get_shallow_local_flooding_list(checked_brokers)
         return result
 
     def _get_table_as_list_of_dict(self) -> list:
